@@ -354,6 +354,9 @@ def update_progress(body):
             q["best"] = max(q["best"], score)
             q["total"] = total
             q["last"] = now()
+            if isinstance(body.get("answers"), list):
+                q["answers"] = body["answers"]
+                q["checked"] = True
             if not q["passed"] and total and score / total >= config().get("pass_mark", 0.7):
                 q["passed"] = True
                 q["passed_at"] = now()
@@ -371,6 +374,12 @@ def update_progress(body):
                 c["box"] = 0
                 c["due"] = today.isoformat()
             c["reviews"] = c.get("reviews", 0) + 1
+        elif kind == "quiz_answers":
+            q = p["quiz"].setdefault(body["topic"], {"best": 0, "total": 0, "attempts": 0, "passed": False})
+            q["answers"] = body.get("answers") if isinstance(body.get("answers"), list) else []
+            q["checked"] = False
+            write_json(PROGRESS, p)
+            return p
         elif kind == "review":
             gained = 3 * max(0, int(body["score"]))
         else:

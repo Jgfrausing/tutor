@@ -661,7 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const reviewsDone = () => Object.values(progress.cards).reduce((sum, c) => sum + (c.reviews || 0), 0);
   const ofKind = kind => NODES.filter(n => !kind || n.kind === kind);
-  const perfect = id => progress.quiz[id] && progress.quiz[id].best === progress.quiz[id].total;
+  const perfect = id => !!progress.quiz[id] && progress.quiz[id].attempts > 0 && progress.quiz[id].total > 0 && progress.quiz[id].best === progress.quiz[id].total;
   const BADGE_RULES = {
     passed: r => passed(r.node),
     all_passed: r => (r.nodes || []).every(passed),
@@ -878,7 +878,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const result = el("span", { class: "quiz-result" });
     const check = el("button", { class: "btn primary", type: "button" }, "Check answers");
     const retry = el("button", { class: "btn", type: "button", hidden: "" }, "Try again");
-    check.addEventListener("click", async () => {
+    const chosenList = () => forms.map(f => { const c = f.querySelector("input:checked"); return c ? +c.value : null; });
+    let saveTimer = null;
+    const saveAnswers = () => {
+      if (review || !onServer) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => { postProgress({ kind: "quiz_answers", topic: TOPIC, answers: chosenList() }).catch(() => {}); }, 300);
+    };
+    forms.forEach(f => f.addEventListener("change", saveAnswers));
+    const grade = async save => {
       let right = 0, answered = 0;
       forms.forEach((f, qi) => {
         const chosen = f.querySelector("input:checked");
@@ -896,6 +904,11 @@ document.addEventListener("DOMContentLoaded", () => {
       retry.hidden = false;
       const pct = Math.round((right / qs.length) * 100);
       result.textContent = `${right} of ${qs.length} right (${pct}%).` + (answered < qs.length ? ` ${qs.length - answered} unanswered.` : "");
+      if (!save) {
+        const q = progress.quiz[TOPIC];
+        result.textContent = `Your last check${q && q.last ? " (" + new Date(q.last).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) + ")" : ""}: ` + result.textContent;
+        return;
+      }
       if (review) {
         try {
           const gained = await postProgress({ kind: "review", score: right, total: qs.length });
@@ -905,7 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       try {
         const wasPassed = passed(TOPIC);
-        const gained = await postProgress({ kind: "quiz", topic: TOPIC, score: right, total: qs.length });
+        const gained = await postProgress({ kind: "quiz", topic: TOPIC, score: right, total: qs.length, answers: chosenList() });
         if (!wasPassed && passed(TOPIC)) {
           const unlocked = NODES.filter(k => k.id !== TOPIC && nodeState(k) === "available" && ((k.prereqs || []).includes(TOPIC) || (k.attached_to || []).includes(TOPIC)));
           result.textContent += ` Node completed, +${gained} XP.` + (unlocked.length ? " Unlocked: " + unlocked.map(k => k.title).join(", ") + "." : "");
@@ -916,7 +929,8 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (err) {
         result.textContent += " (Progress not saved: " + err.message + ")";
       }
-    });
+    };
+    check.addEventListener("click", () => grade(true));
     retry.addEventListener("click", () => {
       if (review) { location.reload(); return; }
       forms.forEach(f => {
@@ -927,8 +941,18 @@ document.addEventListener("DOMContentLoaded", () => {
       result.textContent = "";
       check.hidden = false;
       retry.hidden = true;
+      saveAnswers();
     });
     box.append(el("div", { class: "form-row" }, check, retry, result));
+    const saved = !review && progress.quiz[TOPIC];
+    if (saved && Array.isArray(saved.answers) && saved.answers.length === qs.length) {
+      forms.forEach((f, qi) => {
+        const a = saved.answers[qi];
+        const input = a == null ? null : f.querySelector(`input[value="${a}"]`);
+        if (input) input.checked = true;
+      });
+      if (saved.checked) grade(false);
+    }
     renderMath(box);
     return box;
   }
