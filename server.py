@@ -207,9 +207,9 @@ def render(page, topic=None):
     elif page == "review":
         content, title = "", "Mixed review"
     else:
-        content, title = "", cur.get("title", "Skill tree")
+        content, title = "", cur.get("title", "Tutor")
     if page != "topic":
-        title = f"{title}: {cur.get('title', 'Skill tree')}" if page in ("cards", "review") else title
+        title = f"{title}: {cur.get('title', 'Tutor')}" if page in ("cards", "review") else title
     return (APP.read_text()
             .replace("__TITLE__", html.escape(title))
             .replace("__BOOT_JSON__", blob)

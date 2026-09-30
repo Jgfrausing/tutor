@@ -275,7 +275,7 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 
 <header class="top">
   <div class="top-inner">
-    <a class="brand" href="/">Skill tree</a>
+    <a class="brand" href="/">Tutor</a>
     <label class="search">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
       <input id="gsearch" type="search" placeholder="Search the glossary" autocomplete="off" aria-label="Search the glossary">
@@ -926,7 +926,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const n = NODE[TOPIC];
     const st = nodeState(n);
     const head = [
-      el("div", { class: "crumbs" }, el("a", { href: "/" }, "Skill tree"), "/", kindChip(n.kind),
+      el("div", { class: "crumbs" }, el("a", { href: "/" }, BOOT.curriculum.title), "/", kindChip(n.kind),
         el("span", {}, st === "completed" ? "Completed" : st === "locked" ? (isSide(n) ? "Side quest, opens with " + (n.attached_to || []).map(p => NODE[p].title).join(" or ") : "Locked: " + (n.prereqs || []).filter(p => !passed(p)).map(p => NODE[p].title).join(", ") + " first") : `Available, +${xpOf(n.kind)} XP`)),
       el("h1", {}, n.title),
       el("p", { class: "lede" }, n.summary),
