@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-light.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css" media="(prefers-color-scheme: dark)">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
 <style>
 :root {
   --bg: #f5f6fa;
@@ -53,6 +57,10 @@ code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; fo
 code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
 pre { background: var(--code-bg); padding: 0.9rem 1rem; border-radius: 8px; overflow-x: auto; line-height: 1.5; margin: 0; }
 pre code { background: none; padding: 0; font-size: 1em; }
+pre code.hljs { background: transparent; padding: 0; }
+.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 80; }
+.note-actions .btn-small { font: inherit; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--danger) 60%, transparent); background: none; color: var(--danger); cursor: pointer; }
+.note-actions .btn-small:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
 header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
 .top-inner { max-width: 72rem; margin: 0 auto; padding: 0.6rem 16px; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
@@ -279,6 +287,7 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
       <a class="btn" id="open-cards" href="/cards">Cards <span id="cards-due"></span></a>
       <a class="btn" href="/review">Review quiz</a>
       <a class="level-chip" href="/" id="level-chip" title="Level and XP"></a>
+      <button class="btn" id="sound-toggle" type="button" title="Sound effects for quiz results"></button>
       <span class="status" id="claude-status" data-state="offline">Claude offline</span>
     </div>
   </div>
@@ -360,6 +369,99 @@ document.addEventListener("DOMContentLoaded", () => {
     return e;
   };
   const decode = s => String(s).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+  function highlightCode(root) {
+    if (!window.hljs || !root) return;
+    try {
+      window.hljs.configure({ languages: ["python", "rust", "sql", "bash", "json", "plaintext"], ignoreUnescapedHTML: true });
+      root.querySelectorAll("pre code").forEach(c => { if (!c.dataset.hl) { window.hljs.highlightElement(c); c.dataset.hl = "1"; } });
+    } catch {}
+  }
+
+  const SOUND_KEY = "study-tree-sound";
+  const soundOn = () => { try { return localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; } };
+  let audioCtx = null;
+  function tone(t, freq, dur, opts = {}) {
+    const { type = "sawtooth", gain = 0.12, vibrato = 0, slideTo = null } = opts;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    f.type = "lowpass";
+    f.frequency.value = 2400;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+    g.gain.setValueAtTime(gain, t + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    if (vibrato) {
+      const lfo = audioCtx.createOscillator(), depth = audioCtx.createGain();
+      lfo.frequency.value = 6;
+      depth.gain.value = vibrato;
+      lfo.connect(depth).connect(o.frequency);
+      lfo.start(t);
+      lfo.stop(t + dur);
+    }
+    o.connect(f).connect(g).connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+  function playSound(kind) {
+    if (!soundOn()) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audioCtx.currentTime + 0.05;
+      if (kind === "fanfare") {
+        [[523.25, 0, 0.13], [523.25, 0.15, 0.13], [523.25, 0.3, 0.13], [659.25, 0.45, 0.32], [587.33, 0.8, 0.13], [659.25, 0.95, 0.13], [783.99, 1.1, 0.7]]
+          .forEach(([f, d, l]) => { tone(t + d, f, l); tone(t + d, f / 2, l, { type: "square", gain: 0.035 }); });
+      } else {
+        [[392, 0, 0.36], [369.99, 0.42, 0.36], [349.23, 0.84, 0.36], [329.63, 1.26, 1.2]]
+          .forEach(([f, d, l], i) => tone(t + d, f, l, { gain: 0.13, vibrato: i === 3 ? 8 : 0, slideTo: i === 3 ? 300 : null }));
+      }
+    } catch {}
+  }
+  function confetti() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const canvas = el("canvas", { class: "confetti" });
+    document.body.append(canvas);
+    const ctx = canvas.getContext("2d");
+    const dpr = devicePixelRatio || 1;
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+    ctx.scale(dpr, dpr);
+    const css = getComputedStyle(document.documentElement);
+    const colors = ["--accent", "--accent-2", "--ok", "--gold", "--danger", "--lab"].map(v => css.getPropertyValue(v).trim() || "#7aa2f7");
+    const parts = Array.from({ length: 200 }, () => ({
+      x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * 0.3, y: innerHeight * 0.4,
+      vx: (Math.random() - 0.5) * 16, vy: -Math.random() * 15 - 5,
+      w: Math.random() * 7 + 5, a: Math.random() * 6.28, va: (Math.random() - 0.5) * 0.35,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    const start = performance.now();
+    const frame = now => {
+      const t = now - start;
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      ctx.globalAlpha = Math.max(0, 1 - t / 3500);
+      for (const p of parts) {
+        p.vy += 0.33;
+        p.vx *= 0.99;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.a += p.va;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.a);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.w / 4, p.w, p.w / 2);
+        ctx.restore();
+      }
+      if (t < 3500) requestAnimationFrame(frame); else canvas.remove();
+    };
+    requestAnimationFrame(frame);
+  }
+  const soundBtn = document.getElementById("sound-toggle");
+  const paintSound = () => { soundBtn.textContent = soundOn() ? "Sound on" : "Sound off"; };
+  soundBtn.addEventListener("click", () => { try { localStorage.setItem(SOUND_KEY, soundOn() ? "off" : "on"); } catch {} paintSound(); });
+  paintSound();
+
   function renderMath(root) {
     if (!window.renderMathInElement || !root) return;
     try {
@@ -557,7 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return NODES.flatMap(n => (BOOT.cards[n.id] || []).map(c => ({ ...c, topic: n.id })));
   }
   function dueCards() {
-    return allCards().filter(c => progress.visited[c.topic] && (!progress.cards[c.id] || progress.cards[c.id].due <= today()));
+    return allCards().filter(c => passed(c.topic) && (!progress.cards[c.id] || progress.cards[c.id].due <= today()));
   }
   function updateLevel() {
     const { level, into, rank } = levelOf(progress.xp);
@@ -848,7 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const extras = el("div", { id: "extras" });
     if (BOOT.cards[TOPIC]) {
       extras.append(el("h2", { class: "section-title", id: "cards" }, "Flip cards"),
-        el("p", { class: "lede" }, "Click a card to open it, then click or press space to flip it. Arrow keys move between cards. These cards join your daily review on the Cards page once you open this lesson."),
+        el("p", { class: "lede" }, "Click a card to open it, then click or press space to flip it. Arrow keys move between cards. These cards join your daily review on the Cards page once you complete this lesson."),
         cardsGrid(BOOT.cards[TOPIC].map(c => ({ ...c, topic: TOPIC }))));
     }
     if (BOOT.quiz) extras.append(renderQuiz());
@@ -919,6 +1021,8 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const wasPassed = passed(TOPIC);
         const gained = await postProgress({ kind: "quiz", topic: TOPIC, score: right, total: qs.length, answers: chosenList() });
+        if (!wasPassed && passed(TOPIC)) { confetti(); playSound("fanfare"); }
+        else if (right / qs.length < PASS_MARK) playSound("wah");
         if (!wasPassed && passed(TOPIC)) {
           const unlocked = NODES.filter(k => k.id !== TOPIC && nodeState(k) === "available" && ((k.prereqs || []).includes(TOPIC) || (k.attached_to || []).includes(TOPIC)));
           result.textContent += ` Node completed, +${gained} XP.` + (unlocked.length ? " Unlocked: " + unlocked.map(k => k.title).join(", ") + "." : "");
@@ -1013,14 +1117,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderCardsPage() {
     let queue = dueCards().sort(() => Math.random() - 0.5);
-    const total = allCards().filter(c => progress.visited[c.topic]).length;
+    const total = allCards().filter(c => passed(c.topic)).length;
     const wrap = el("div", { class: "review" });
     main.replaceChildren(el("h1", {}, "Flip card review"),
-      el("p", { class: "lede" }, `Cards from lessons you have opened (${total} cards so far). "Got it" moves a card to a longer interval (1, 2, 4, 8, 16, 32 days); "Again" brings it back today. Each "Got it" on a due card is worth 2 XP.`), wrap);
+      el("p", { class: "lede" }, `Cards from lessons you have completed (${total} cards so far). "Got it" moves a card to a longer interval (1, 2, 4, 8, 16, 32 days); "Again" brings it back today. Each "Got it" on a due card is worth 2 XP.`), wrap);
     const show = () => {
       wrap.replaceChildren();
       if (!queue.length) {
-        wrap.append(el("p", { class: "empty" }, total ? "Nothing due. Come back tomorrow, or open a new lesson to add its cards." : "Open a lesson from the skill tree to add its cards here."));
+        wrap.append(el("p", { class: "empty" }, total ? "Nothing due. Come back tomorrow, or complete another lesson to add its cards." : "Complete a lesson (pass its quiz) to add its cards here."));
         updateLevel();
         return;
       }
@@ -1100,6 +1204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     renderMath(box);
+    highlightCode(box);
     glossarize(box, true);
     return box;
   }
@@ -1119,10 +1224,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isReply) head.append(el("span", { class: "type " + n.type }, TYPE_LABEL[n.type] || n.type));
     head.append(el("span", {}, fmt(n.created)), stateChip(n));
     if (who === "you") {
-      head.append(el("span", { class: "note-actions" }, el("button", { class: "linkish danger", type: "button", onclick: async () => {
-        if (!confirm(isReply ? "Delete this reply?" : "Delete this and all its replies?")) return;
-        try { await api("/api/delete", { id: n.id }); await refresh(); } catch (err) { alert("Delete failed: " + err.message); }
-      } }, "Delete")));
+      const what = isReply ? "reply" : ({ question: "question", request: "edit request", comment: "comment" }[n.type] || "note");
+      head.append(el("span", { class: "note-actions" }, el("button", { class: "btn-small", type: "button", title: isReply ? "Delete this reply" : "Delete this " + what + " and every reply to it", onclick: async () => {
+        if (!confirm(isReply ? "Delete this reply?" : `Delete this ${what} and all its replies?`)) return;
+        try { await api("/api/delete", { id: n.id }); await refresh(); if (!nPanel.hidden) renderNotesPanel(); } catch (err) { alert("Delete failed: " + err.message); }
+      } }, "Delete " + what)));
     }
     const body = who === "claude" ? md(n.text) : el("p", { class: "note-text" }, n.text);
     return el("div", { class: `note ${who}${isReply ? " reply" : ""}`, "data-id": n.id }, head, body);
@@ -1336,6 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupBlocks();
     renderTopicShell();
     renderMath(main);
+    highlightCode(main);
     glossarize(doc);
     blocks.forEach(updateBadge);
     if (onServer && !progress.visited[TOPIC]) postProgress({ kind: "visit", topic: TOPIC }).catch(() => {});
