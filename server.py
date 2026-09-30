@@ -25,21 +25,24 @@ BLOCK_TAG = re.compile(r'<(h2|h3|p|li|tr|div class="codewrap"|div class="math")(
 SERVABLE = {".pdf", ".py", ".sql", ".png", ".jpg", ".svg", ".csv", ".json", ".md", ".txt"}
 
 
-def configure(root, port):
-    global ROOT, PORT, CURRICULUM, TOPICS, QUIZZES, CARDS, TERMS, NOTES_MD, JOURNAL, NOTES, PROGRESS, LOCK, HEARTBEAT
+def configure(root, port, state=None):
+    global ROOT, STATE, PORT, CURRICULUM, TOPICS, QUIZZES, CARDS, TERMS, NOTES_MD, JOURNAL, NOTES, PROGRESS, LOCK, HEARTBEAT
     ROOT = pathlib.Path(root).expanduser().resolve()
     PORT = port
+    default_state = pathlib.Path.home() / ".study-tree" / re.sub(r"[^a-z0-9]+", "-", ROOT.name.lower())
+    STATE = pathlib.Path(state).expanduser().resolve() if state else default_state
+    STATE.mkdir(parents=True, exist_ok=True)
     CURRICULUM = ROOT / "curriculum.json"
     TOPICS = ROOT / "topics"
     QUIZZES = ROOT / "quizzes"
     CARDS = ROOT / "cards"
     TERMS = ROOT / "terms"
-    NOTES_MD = ROOT / "notes"
-    JOURNAL = ROOT / "journal"
-    NOTES = ROOT / "notes.json"
-    PROGRESS = ROOT / "progress.json"
-    LOCK = ROOT / ".notes.lock"
-    HEARTBEAT = ROOT / ".watcher-heartbeat"
+    NOTES_MD = STATE / "notes"
+    JOURNAL = STATE / "journal"
+    NOTES = STATE / "notes.json"
+    PROGRESS = STATE / "progress.json"
+    LOCK = STATE / ".notes.lock"
+    HEARTBEAT = STATE / ".watcher-heartbeat"
     if not CURRICULUM.exists():
         raise SystemExit(f"no curriculum.json in {ROOT}")
 
@@ -62,12 +65,14 @@ def display_path(path):
 
 def platform_info():
     root = display_path(ROOT)
+    state = display_path(STATE)
     server = display_path(PLATFORM / "server.py")
     return {
         "root": root,
+        "state": state,
         "port": PORT,
         "key": re.sub(r"[^a-z0-9]+", "-", ROOT.name.lower()),
-        "serve_cmd": f"python3 {server} --root {root} --port {PORT} serve",
+        "serve_cmd": f"python3 {server} --root {root} --state {state} --port {PORT} serve",
     }
 
 
@@ -418,8 +423,8 @@ def view(notes, n):
         "reply_to": root["id"],
         "type": root["type"],
         "topic": topic_of(root),
-        "file": f"topics/{topic_of(root)}.html",
-        "journal": f"journal/{topic_of(root)}.md",
+        "file": display_path(TOPICS / f"{topic_of(root)}.html"),
+        "journal": display_path(JOURNAL / f"{topic_of(root)}.md"),
         "section": root.get("section"),
         "block": root["block"],
         "context": root.get("context") or root.get("excerpt"),
@@ -429,7 +434,7 @@ def view(notes, n):
 
 def cmd_serve(args):
     server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"serving {ROOT} on http://127.0.0.1:{PORT}/", flush=True)
+    print(f"serving {ROOT} with state in {STATE} on http://127.0.0.1:{PORT}/", flush=True)
     server.serve_forever()
 
 
@@ -512,6 +517,7 @@ def cmd_list(args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", default=os.environ.get("STUDY_ROOT", "."), help="curriculum directory (default: $STUDY_ROOT or the current directory)")
+    p.add_argument("--state", default=os.environ.get("STUDY_STATE"), help="directory for your notes, journal and progress (default: $STUDY_STATE or ~/.study-tree/<curriculum>)")
     p.add_argument("--port", type=int, default=int(os.environ.get("STUDY_PORT", DEFAULT_PORT)))
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("serve").set_defaults(fn=cmd_serve)
@@ -528,7 +534,7 @@ def main():
     ls.add_argument("--open", action="store_true")
     ls.set_defaults(fn=cmd_list)
     args = p.parse_args()
-    configure(args.root, args.port)
+    configure(args.root, args.port, args.state)
     args.fn(args)
 
 

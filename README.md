@@ -7,10 +7,10 @@ The platform holds no subject matter. Each curriculum is a folder with a `curric
 ## Run
 
 ```sh
-python3 server.py --root ~/notes/market-simulation --port 8765 serve
+python3 server.py --root ~/notes/market-simulation --state ~/notes/study-state/market-simulation --port 8765 serve
 ```
 
-`--root` defaults to `$STUDY_ROOT` or the current directory, and `--port` to `$STUDY_PORT` or 8765. Each curriculum gets its own server on its own port.
+`--root` is the curriculum folder. The server reads it and writes to it only when `build` assigns block ids. `--state` is where your notes, answers, journal and progress go, so the curriculum folder can be shared. The defaults are `$STUDY_ROOT` or the current directory for `--root`, `$STUDY_STATE` or `~/.study-tree/<curriculum folder name>` for `--state`, and `$STUDY_PORT` or 8765 for `--port`. Each curriculum gets its own server on its own port. Pass the same `--root` and `--state` to `wait`, `reply` and `list`.
 
 | Command | What it does |
 |---|---|
@@ -25,11 +25,11 @@ python3 server.py --root ~/notes/market-simulation --port 8765 serve
 | File | What it holds |
 |---|---|
 | `app.html` | The page shell: tree, lessons, quiz, cards, glossary, notes. It reads kinds, ranks, badges and strings from the curriculum's `config` |
-| `server.py` | HTTP server and CLI. It stores state in the curriculum folder: `notes.json`, `notes/<id>.md`, `journal/<id>.md` and `progress.json` |
+| `server.py` | HTTP server and CLI. It keeps state in the `--state` folder: `notes.json`, `notes/<id>.md`, `journal/<id>.md`, `progress.json`, the log and the listener heartbeat |
 | `FORMAT_SPEC.md` | The contract for a curriculum folder |
 
 ## Installed curricula
 
-| Curriculum | Port | launchd agent |
-|---|---|---|
-| `~/notes/market-simulation` | 8765 | `~/Library/LaunchAgents/com.jfr.market-sim-notes.plist` |
+| Curriculum | State | Port | launchd agent |
+|---|---|---|---|
+| `~/notes/market-simulation` | `~/notes/study-state/market-simulation` | 8765 | `~/Library/LaunchAgents/com.jfr.market-sim-notes.plist` |

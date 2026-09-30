@@ -290,7 +290,7 @@ __CONTENT__
 <aside class="panel" id="notes-panel" hidden aria-label="Notes">
   <div class="panel-head"><h2>Comments and questions</h2><button class="btn" type="button" data-close>Close</button></div>
   <div class="panel-body">
-    <p class="panel-sub">Blue is you, purple is Claude. Every thread is also saved as markdown in <code>notes/&lt;topic&gt;.md</code>.</p>
+    <p class="panel-sub" id="notes-sub">Blue is you, purple is Claude.</p>
     <div class="tabs seg" id="n-tabs">
       <button type="button" data-filter="waiting" aria-pressed="true">Waiting on Claude</button>
       <button type="button" data-filter="question" aria-pressed="false">Questions</button>
@@ -863,7 +863,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let journalSaved = BOOT.journal || "";
   let journalTimer = null;
-  const journalArea = el("textarea", { id: "journal", placeholder: `Your own notes for this lesson. They save to ${PLATFORM.root}/journal/${TOPIC}.md as you type.`, style: "min-height: 12rem; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem;" });
+  const journalArea = el("textarea", { id: "journal", placeholder: `Your own notes for this lesson. They save to ${PLATFORM.state}/journal/${TOPIC}.md as you type.`, style: "min-height: 12rem; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem;" });
   const journalStatus = el("span", { class: "hint" });
   function renderJournal() {
     const box = el("section", { id: "your-notes" });
@@ -878,14 +878,14 @@ document.addEventListener("DOMContentLoaded", () => {
     ask.addEventListener("click", async () => {
       ask.disabled = true;
       try {
-        await api("/api/notes", { block: TOPIC + "/journal", topic: TOPIC, type: "request", section: "Your notes", excerpt: "Your notes", context: "Journal file journal/" + TOPIC + ".md",
-          text: (CFG.journal_prompt || "Write study notes for this lesson into my notes file ({journal}). Keep what I already wrote.").replaceAll("{journal}", "journal/" + TOPIC + ".md").replaceAll("{title}", NODE[TOPIC].title) });
+        await api("/api/notes", { block: TOPIC + "/journal", topic: TOPIC, type: "request", section: "Your notes", excerpt: "Your notes", context: `Journal file ${PLATFORM.state}/journal/${TOPIC}.md`,
+          text: (CFG.journal_prompt || "Write study notes for this lesson into my notes file ({journal}). Keep what I already wrote.").replaceAll("{journal}", `${PLATFORM.state}/journal/${TOPIC}.md`).replaceAll("{title}", NODE[TOPIC].title) });
         await refresh();
         showToast("Asked Claude for study notes. They will appear in the box below.");
       } catch (err) { alert("Could not send: " + err.message); }
       ask.disabled = false;
     });
-    box.append(head, el("p", { class: "lede" }, "Markdown, saved on disk at ", el("code", {}, `${PLATFORM.root}/journal/${TOPIC}.md`), ". Your question threads are also exported to ", el("code", {}, "notes/" + TOPIC + ".md"), "."),
+    box.append(head, el("p", { class: "lede" }, "Markdown, saved on disk at ", el("code", {}, `${PLATFORM.state}/journal/${TOPIC}.md`), ". Your question threads are also exported to ", el("code", {}, `${PLATFORM.state}/notes/${TOPIC}.md`), "."),
       journalArea, el("div", { class: "form-row" }, ask, journalStatus));
     registerBlock(head, "Your notes", "Your notes");
     return box;
@@ -1232,6 +1232,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("open-notes").addEventListener("click", () => { renderNotesPanel(); openPanel(nPanel.hidden ? nPanel : null); });
 
+  document.getElementById("notes-sub").append(" Every thread is also saved as markdown in ", el("code", {}, `${PLATFORM.state}/notes/<topic>.md`), ".");
   if (PAGE === "tree") renderTree();
   else if (PAGE === "cards") renderCardsPage();
   else if (PAGE === "review") renderReviewPage();
