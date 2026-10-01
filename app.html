@@ -145,6 +145,17 @@ tr:hover td > .c-add.inline, td > .c-add.inline.has-notes { opacity: 1; }
 
 .thread { margin: 0.6rem 0 1rem; padding: 0.7rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 0.92rem; }
 .thread[hidden] { display: none; }
+.c-block.linked { background: var(--flash); border-radius: 6px; }
+#side { display: none; }
+@media (min-width: 1260px) {
+  main.with-side { position: relative; margin-left: max(16px, calc((100vw - 70rem) / 2)); margin-right: auto; }
+  #side { display: block; position: absolute; top: 0; left: calc(100% + 2rem); width: 22rem; }
+  #side .thread { position: absolute; left: 0; right: 0; margin: 0; max-height: 75vh; overflow: auto; transition: top 0.15s; }
+  #side .thread:not(.active) .form { display: none; }
+  #side .thread.active { border-color: var(--accent); box-shadow: var(--shadow); z-index: 2; }
+  #side .reply-box, #side .thread-foot { margin-left: 0.6rem; }
+  #side .note.reply { margin-left: 0.6rem; }
+}
 .thread-row td { padding: 0 0.7rem; background: var(--bg); }
 .note { position: relative; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 .note.claude { border-left: 3px solid var(--accent-2); padding-left: 0.75rem; background: color-mix(in srgb, var(--accent-2) 7%, transparent); border-radius: 0 6px 6px 0; }
@@ -1187,11 +1198,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function inline(s) {
     const frag = document.createDocumentFragment();
-    s.split(/(`[^`]+`|\*\*[^*]+\*\*|!\[[^\]]*\]\((?:https?:\/\/|\/files\/)[^)\s]*\)|\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]*\))/g).forEach((part, i) => {
+    s.split(/(`[^`]+`|\*\*[^*]+\*\*|\*(?=\S)[^*\n]+?(?<=\S)\*|!\[[^\]]*\]\((?:https?:\/\/|\/files\/)[^)\s]*\)|\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]*\))/g).forEach((part, i) => {
       if (!(i % 2)) { frag.append(part); return; }
       if (part.startsWith("![")) { const m = part.match(/^!\[([^\]]*)\]\((.+)\)$/); frag.append(el("img", { src: m[2], alt: m[1], loading: "lazy" })); }
       else if (part.startsWith("`")) frag.append(el("code", {}, part.slice(1, -1)));
       else if (part.startsWith("**")) frag.append(el("strong", {}, part.slice(2, -2)));
+      else if (part.startsWith("*")) frag.append(el("em", {}, part.slice(1, -1)));
       else { const m = part.match(/^\[([^\]]+)\]\((.+)\)$/); frag.append(el("a", { href: m[2], target: m[2].startsWith("/") ? null : "_blank", rel: "noopener" }, m[1])); }
     });
     return frag;
@@ -1227,7 +1239,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const who = n.author === "claude" ? "claude" : "you";
     const head = el("div", { class: "note-head" }, el("span", { class: "who " + who }, who === "claude" ? "Claude" : "You"));
     if (!isReply) head.append(el("span", { class: "type " + n.type }, TYPE_LABEL[n.type] || n.type));
-    head.append(el("span", {}, fmt(n.created)), stateChip(n));
+    head.append(el("span", {}, fmt(n.created)));
+    const chip = stateChip(n);
+    if (chip) head.append(chip);
     if (who === "you") {
       const what = isReply ? "reply" : ({ question: "question", request: "edit request", comment: "comment" }[n.type] || "note");
       head.append(el("span", { class: "note-actions" }, el("button", { class: "btn-small", type: "button", title: isReply ? "Delete this reply" : "Delete this " + what + " and every reply to it", onclick: async () => {
@@ -1253,21 +1267,64 @@ document.addEventListener("DOMContentLoaded", () => {
     catch (err) { alert("Could not save: " + err.message); return false; }
     finally { button.disabled = false; }
   }
+  const sideMQ = matchMedia("(min-width: 1260px)");
+  let sideBox = null;
+  const sideMode = () => PAGE === "topic" && sideMQ.matches;
+  function ensureSide() {
+    if (!sideBox) { sideBox = el("div", { id: "side", "aria-label": "Comments and questions" }); main.append(sideBox); }
+    return sideBox;
+  }
+  function placeThread(b) {
+    const t = b._thread;
+    if (sideMode()) {
+      ensureSide().append(t);
+      if (b._row) b._row.hidden = true;
+      return;
+    }
+    t.style.top = "";
+    if (b.tagName === "TR") {
+      if (!b._row) { b._row = el("tr", { class: "thread-row" }, el("td", { colspan: String(b.children.length) })); b.after(b._row); }
+      b._row.firstChild.append(t);
+      b._row.hidden = t.hidden;
+    } else if (b.tagName === "LI") b.append(t);
+    else b.after(t);
+  }
   function threadOf(b) {
     if (b._thread) return b._thread;
     const list = el("div", { class: "thread-list" });
     const t = el("div", { class: "thread", hidden: "" }, list, newForm(b));
     t._list = list;
-    if (b.tagName === "TR") {
-      const row = el("tr", { class: "thread-row" }, el("td", { colspan: String(b.children.length) }, t));
-      row.hidden = true;
-      b.after(row);
-      b._row = row;
-    } else if (b.tagName === "LI") b.append(t);
-    else b.after(t);
+    t._block = b;
+    t.addEventListener("mouseenter", () => b.classList.add("linked"));
+    t.addEventListener("mouseleave", () => b.classList.remove("linked"));
     b._thread = t;
+    placeThread(b);
     return t;
   }
+  function layoutSide() {
+    if (!sideMode() || !sideBox) return;
+    const base = main.getBoundingClientRect().top;
+    const items = [...sideBox.children].filter(t => !t.hidden)
+      .map(t => ({ t, top: t._block.getBoundingClientRect().top - base }))
+      .sort((a, b) => a.top - b.top);
+    let floor = 0;
+    for (const it of items) {
+      const top = Math.max(it.top, floor);
+      it.t.style.top = top + "px";
+      floor = top + it.t.offsetHeight + 12;
+    }
+  }
+  function autoOpenSide() {
+    if (!sideMode()) return;
+    blocks.forEach((b, id) => { if (rootsFor(id).length) { threadOf(b); renderList(b); setThreadVisible(b, true); } });
+  }
+  sideMQ.addEventListener("change", () => {
+    blocks.forEach(b => { if (b._thread) placeThread(b); });
+    autoOpenSide();
+    layoutSide();
+  });
+  addEventListener("resize", () => layoutSide());
+  if (window.ResizeObserver) new ResizeObserver(() => layoutSide()).observe(main);
   function newForm(b) {
     const id = b.dataset.bid;
     const key = "new:" + id;
@@ -1284,9 +1341,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const submit = () => send({ block: id, topic: TOPIC, type, text: ta.value, section: blockSection.get(id), excerpt: excerptOf(id), context: blockText.get(id) }, key, save).then(ok => { if (ok) ta.value = ""; });
     const ta = draftArea(key, placeholders.question, submit);
     save.addEventListener("click", submit);
-    ta.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); setThreadVisible(b, false); } });
+    ta.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); closeThread(b); } });
     return el("div", { class: "form" }, el("div", { class: "form-title" }, "New"), ta,
-      el("div", { class: "form-row" }, seg, save, el("button", { class: "btn", type: "button", onclick: () => setThreadVisible(b, false) }, "Close"), el("span", { class: "hint" }, "Cmd/Ctrl + Enter sends")));
+      el("div", { class: "form-row" }, seg, save, el("button", { class: "btn", type: "button", onclick: () => closeThread(b) }, "Close"), el("span", { class: "hint" }, "Cmd/Ctrl + Enter sends")));
   }
   function renderList(b) {
     const t = threadOf(b);
@@ -1317,15 +1374,25 @@ document.addEventListener("DOMContentLoaded", () => {
   function setThreadVisible(b, visible) {
     const t = threadOf(b);
     t.hidden = !visible;
-    if (b._row) b._row.hidden = !visible;
-    b.classList.toggle("open", visible);
+    if (b._row) b._row.hidden = sideMode() || !visible;
+    b.classList.toggle("open", visible && (!sideMode() || t.classList.contains("active")));
+    layoutSide();
+  }
+  function closeThread(b) {
+    const t = threadOf(b);
+    t.classList.remove("active");
+    if (sideMode() && rootsFor(b.dataset.bid).length) { b.classList.remove("open"); layoutSide(); }
+    else setThreadVisible(b, false);
   }
   function toggleThread(b, forceOpen) {
     const t = threadOf(b);
-    const open = forceOpen || t.hidden;
-    if (open) renderList(b);
-    setThreadVisible(b, open);
-    if (open && !rootsFor(b.dataset.bid).length) t.querySelector('[data-draft^="new:"]').focus();
+    const side = sideMode();
+    const open = forceOpen || t.hidden || (side && !t.classList.contains("active"));
+    if (!open) { closeThread(b); return; }
+    renderList(b);
+    t.classList.add("active");
+    setThreadVisible(b, true);
+    if (side || !rootsFor(b.dataset.bid).length) t.querySelector('[data-draft^="new:"]').focus({ preventScroll: true });
   }
   function updateBadge(b) {
     const btn = b.querySelector(":scope > .c-add, :scope > td > .c-add");
@@ -1422,10 +1489,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     blocks.forEach((b, id) => {
       const sig = JSON.stringify(notes.filter(n => n.block === id).map(n => [n.id, n.status, n.text])) + listening;
-      if (signatures.get(id) !== sig) { signatures.set(id, sig); updateBadge(b); if (b._thread && !b._thread.hidden) renderList(b); }
+      if (signatures.get(id) !== sig) {
+        signatures.set(id, sig);
+        updateBadge(b);
+        const has = rootsFor(id).length > 0;
+        if (sideMode() && has) { threadOf(b); renderList(b); setThreadVisible(b, true); }
+        else if (b._thread && !b._thread.hidden) {
+          renderList(b);
+          if (sideMode() && !has && !b._thread.classList.contains("active")) setThreadVisible(b, false);
+        }
+      }
     });
     updateCount();
     updateStatus();
+    layoutSide();
     if (!nPanel.hidden) renderNotesPanel();
     if (PAGE === "topic") syncJournal(state.journal);
     onVersion(state.version);
@@ -1444,6 +1521,7 @@ document.addEventListener("DOMContentLoaded", () => {
   else if (PAGE === "cards") renderCardsPage();
   else if (PAGE === "review") renderReviewPage();
   else if (PAGE === "topic") {
+    main.classList.add("with-side");
     setupBlocks();
     renderTopicShell();
     renderMath(main);
