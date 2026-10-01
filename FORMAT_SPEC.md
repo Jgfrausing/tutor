@@ -46,6 +46,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 <div class="callout notation"><p>Notation side quest: this paper uses \( \mathbb{E}[\cdot] \). See <a href="/t/&lt;side-quest-id&gt;">its side quest</a>.</p></div>
 ```
 
+- Figures: `<figure class="fig"><img src="/files/figures/<name>.svg" alt="What the figure shows"><figcaption>One or two sentences.</figcaption></figure>`. Put the image and the script that generates it in the curriculum's `figures/` folder. SVG is preferred; give it its own `prefers-color-scheme: dark` styles, since an SVG loaded as an image cannot read the page's colours. Answers to questions can show a figure with markdown image syntax, `![alt](/files/figures/<name>.svg)`.
 - Math is rendered with KaTeX. Inline math uses `\( ... \)`, display math uses `\[ ... \]` inside `<div class="math">`. Never use `$` as a math delimiter. Escape `<`, `>` and `&` in HTML text and code as `&lt;`, `&gt;`, `&amp;` (inside `\( \)` too: write `t_i &lt; t`).
 - Link to other nodes with `<a href="/t/<node-id>">Title</a>`. Link to external papers with full URLs.
 - Put commentable content in block elements (p, li, tr, div.math, div.codewrap). Keep paragraphs short (2 to 5 sentences).

@@ -21,7 +21,7 @@ APP = PLATFORM / "app.html"
 DEFAULT_PORT = 8765
 TYPES = {"question", "request", "comment"}
 INTERVALS = [1, 2, 4, 8, 16, 32]
-BLOCK_TAG = re.compile(r'<(h2|h3|p|li|tr|div class="codewrap"|div class="math")(?=[\s>])([^>]*)>')
+BLOCK_TAG = re.compile(r'<(h2|h3|p|li|tr|figure|div class="codewrap"|div class="math")(?=[\s>])([^>]*)>')
 SERVABLE = {".pdf", ".py", ".sql", ".png", ".jpg", ".svg", ".csv", ".json", ".md", ".txt"}
 
 

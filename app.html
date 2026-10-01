@@ -106,6 +106,10 @@ article h3 { font-size: 1.05rem; margin: 1.6rem 0 0.5rem; }
 .callout p { margin: 0; }
 .callout p + p { margin-top: 0.5rem; }
 .codewrap { margin: 1rem 0; }
+figure.fig { margin: 1.4rem 0; }
+figure.fig img, figure.fig svg { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+figure.fig figcaption { color: var(--muted); font-size: 0.86rem; margin-top: 0.45rem; }
+.md img { display: block; max-width: 100%; height: auto; margin: 0.5rem 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .math { margin: 1rem 0; padding: 0.4rem 0.6rem; overflow-x: auto; overflow-y: hidden; }
 ul, ol { padding-left: 1.4rem; }
 li { margin: 0.35rem 0; }
@@ -1171,8 +1175,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupBlocks() {
     if (!doc) return;
     let section = "";
-    doc.querySelectorAll("h2, h3, p, li, .codewrap, .math, tbody tr").forEach(b => {
-      if (b.closest(".toc, .thread") || b.parentElement.closest("li, .codewrap, .math")) return;
+    doc.querySelectorAll("h2, h3, p, li, .codewrap, .math, figure, tbody tr").forEach(b => {
+      if (b.closest(".toc, .thread") || b.parentElement.closest("li, .codewrap, .math, figure")) return;
       const text = b.textContent.replace(/\s+/g, " ").trim();
       if (!text || !b.dataset.cid) return;
       if (b.tagName === "H2") section = text;
@@ -1183,9 +1187,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function inline(s) {
     const frag = document.createDocumentFragment();
-    s.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]*\))/g).forEach((part, i) => {
+    s.split(/(`[^`]+`|\*\*[^*]+\*\*|!\[[^\]]*\]\((?:https?:\/\/|\/files\/)[^)\s]*\)|\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]*\))/g).forEach((part, i) => {
       if (!(i % 2)) { frag.append(part); return; }
-      if (part.startsWith("`")) frag.append(el("code", {}, part.slice(1, -1)));
+      if (part.startsWith("![")) { const m = part.match(/^!\[([^\]]*)\]\((.+)\)$/); frag.append(el("img", { src: m[2], alt: m[1], loading: "lazy" })); }
+      else if (part.startsWith("`")) frag.append(el("code", {}, part.slice(1, -1)));
       else if (part.startsWith("**")) frag.append(el("strong", {}, part.slice(2, -2)));
       else { const m = part.match(/^\[([^\]]+)\]\((.+)\)$/); frag.append(el("a", { href: m[2], target: m[2].startsWith("/") ? null : "_blank", rel: "noopener" }, m[1])); }
     });
