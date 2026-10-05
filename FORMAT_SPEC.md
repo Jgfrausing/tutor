@@ -84,7 +84,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 ]}
 ```
 
-Do not repeat terms that already exist in the curriculum's `glossary_files` or in another node's terms file; check them first. Reuse existing categories where they fit. The glossary panel filters by category.
+Do not repeat terms that already exist in the curriculum's `glossary_files` or in another node's terms file; check them first. The lesson page underlines the first use of a term's name or any alias in each `h2` section, so do not give an alias that is a common word on its own ("flat", "lift", "size"): it would mark ordinary sentences. Reuse existing categories where they fit. The glossary panel filters by category.
 
 
 ## Validation before you finish
