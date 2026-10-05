@@ -396,7 +396,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send(200, json.dumps(update_progress(body)))
             else:
                 self.send(404, '{"error":"not found"}')
-        except (ValueError, KeyError, StopIteration) as e:
+        except KeyError as e:
+            self.send(400, json.dumps({"error": f"missing or unknown value: {e.args[0]}"}))
+        except (ValueError, StopIteration) as e:
             self.send(400, json.dumps({"error": str(e)}))
 
 
