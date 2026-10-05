@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { drafts, useApp } from "../context";
 import { api, errMsg } from "../lib/api";
-import { PLATFORM, TOPIC, TYPE_LABEL } from "../lib/boot";
+import { TOPIC, TYPE_LABEL } from "../lib/boot";
 import { repliesFor, rootsFor } from "../lib/notes";
 import type { Block } from "../types";
 import { NoteView } from "./NoteView";
