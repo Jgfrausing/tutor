@@ -9,13 +9,13 @@ import { NoteView } from "./NoteView";
 type Payload = Record<string, unknown> & { text: string };
 
 function useSend() {
-  const { online, refresh } = useApp();
+  const { online, refresh, showToast } = useApp();
   return async (payload: Payload, key: string, setBusy: (b: boolean) => void) => {
     if (!payload.text.trim()) return false;
-    if (!online) { alert("The notes server is not running. Start it with: " + PLATFORM.serve_cmd); return false; }
+    if (!online) { showToast("The notes server is not running, so this was not sent. Your text is kept; the banner at the top has the command to start the server.", null, "error"); return false; }
     setBusy(true);
     try { await api("/api/notes", payload); drafts.delete(key); await refresh(); return true; }
-    catch (err) { alert("Could not save: " + errMsg(err)); return false; }
+    catch (err) { showToast("Could not save, your text is kept: " + errMsg(err), null, "error"); return false; }
     finally { setBusy(false); }
   };
 }

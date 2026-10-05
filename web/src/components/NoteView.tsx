@@ -13,12 +13,12 @@ function StateChip({ n }: { n: Note }) {
 }
 
 export function NoteView({ n, isReply }: { n: Note; isReply: boolean }) {
-  const { refresh } = useApp();
+  const { refresh, showToast } = useApp();
   const who = n.author === "claude" ? "claude" : "you";
   const what = isReply ? "reply" : ({ question: "question", request: "edit request", comment: "comment" } as Record<string, string>)[n.type] || "note";
   const del = async () => {
     if (!confirm(isReply ? "Delete this reply?" : `Delete this ${what} and all its replies?`)) return;
-    try { await api("/api/delete", { id: n.id }); await refresh(); } catch (err) { alert("Delete failed: " + errMsg(err)); }
+    try { await api("/api/delete", { id: n.id }); await refresh(); } catch (err) { showToast("Delete failed: " + errMsg(err), null, "error"); }
   };
   return (
     <div className={`note ${who}${isReply ? " reply" : ""}`} data-id={n.id}>

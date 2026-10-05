@@ -41,7 +41,7 @@ export function Journal({ headRef }: { headRef: RefObject<HTMLHeadingElement> })
       });
       await refresh();
       showToast("Asked Claude for study notes. They will appear in the box below.");
-    } catch (err) { alert("Could not send: " + errMsg(err)); }
+    } catch (err) { showToast("Could not send: " + errMsg(err), null, "error"); }
     setAsking(false);
   };
 

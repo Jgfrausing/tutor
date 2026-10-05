@@ -6,7 +6,7 @@ import { allCards, dueCards, passed, shuffle } from "../lib/progress";
 import { FlipCard } from "./FlipCard";
 
 export function CardsPage() {
-  const { progress, postProgress } = useApp();
+  const { progress, postProgress, showToast } = useApp();
   const [queue, setQueue] = useState(() => shuffle(dueCards(progress)));
   const [total] = useState(() => allCards().filter(c => passed(progress, c.topic)).length);
   const [turn, setTurn] = useState(0);
@@ -16,7 +16,7 @@ export function CardsPage() {
 
   const answer = async (ok: boolean) => {
     setBusy(true);
-    try { await postProgress({ kind: "card", card: c.id, correct: ok }); } catch (err) { alert("Could not save: " + errMsg(err)); }
+    try { await postProgress({ kind: "card", card: c.id, correct: ok }); } catch (err) { showToast("Could not save this card result: " + errMsg(err), null, "error"); }
     setQueue(q => { const [head, ...rest] = q; return ok ? rest : [...rest, head]; });
     setTurn(t => t + 1);
     setRevealed(false);
