@@ -102,11 +102,15 @@ export function SkillTree({ progress }: { progress: Progress }) {
           const lines = wrapTitle(n.title);
           const c = 12;
           return (
-            <g key={n.id} className={`node ${st}`} tabIndex={0} role="link" transform={`translate(${x - NW / 2},${y})`} opacity={st === "locked" ? "0.55" : "1"}
+            <g key={n.id} className={`node ${st}`} tabIndex={0} role="link" transform={`translate(${x - NW / 2},${y})`}
               onClick={() => go(n)} onKeyDown={e => { if (e.key === "Enter") go(n); }}
               onMouseEnter={() => setLit(ancestorsOf(n.id))} onMouseLeave={() => setLit(null)}
               onFocus={() => setLit(ancestorsOf(n.id))} onBlur={() => setLit(null)}>
               <title>{tip}</title>
+              {shape === "hex"
+                ? <polygon points={`${c},0 ${NW - c},0 ${NW},${NH / 2} ${NW - c},${NH} ${c},${NH} 0,${NH / 2}`} fill="var(--surface)" stroke="none" />
+                : <rect width={NW} height={NH} rx={shape === "sharp" ? 4 : 12} fill="var(--surface)" stroke="none" />}
+              <g opacity={st === "locked" ? "0.55" : "1"}>
               {shape === "hex"
                 ? <polygon points={`${c},0 ${NW - c},0 ${NW},${NH / 2} ${NW - c},${NH} ${c},${NH} 0,${NH / 2}`} fill={fill} stroke={color} strokeDasharray={st === "completed" ? "" : "4 3"} />
                 : <rect width={NW} height={NH} rx={shape === "sharp" ? 4 : 12} fill={fill} stroke={color} strokeWidth={kindOf(n.kind).emphasis ? 3 : 2} />}
@@ -114,6 +118,7 @@ export function SkillTree({ progress }: { progress: Progress }) {
                 <text key={i} x={NW / 2} y={(lines.length > 1 ? 19 : 25) + i * 14} textAnchor="middle" fontWeight="600">{i === 1 && lines.length > 2 ? l + "..." : l}</text>
               ))}
               <text x={NW / 2} y={NH - 8} textAnchor="middle" className="sub">{(st === "completed" ? "Done  " : st === "locked" ? "Locked  " : "") + `${xpOf(n.kind)} XP`}</text>
+              </g>
             </g>
           );
         })}
