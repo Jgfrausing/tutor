@@ -38,7 +38,7 @@ export function CardsPage() {
               <button className="btn" type="button" disabled={!revealed || busy} onClick={() => answer(false)}>Again</button>
               <button className="btn primary" type="button" disabled={!revealed || busy} onClick={() => answer(true)}>Got it</button>
             </div>
-            <p className="panel-sub" style={{ textAlign: "center" }}>Click the card to see the answer, then grade yourself.</p>
+            <p className="panel-sub" style={{ textAlign: "center" }}>{revealed ? "Did you remember it? Grade yourself." : "Click the card to see the answer."}</p>
           </>
         )}
       </div>

@@ -24,7 +24,7 @@ export const FlipCard = forwardRef<HTMLButtonElement, Props>(function FlipCard({
     <button ref={ref} className={"flip" + (isFlipped ? " flipped" : "")} type="button" aria-label={label || "Flip card"} onClick={click}>
       <span className="flip-inner">
         <span className="face front"><small>{big ? NODE[card.topic].title : "Front"}</small><MathText className="txt" text={decode(card.front)} /></span>
-        <span className="face back"><small>Back</small>{card.say ? <SayPhrase text={card.say} /> : null}<MathText className="txt" text={decode(card.back)} /></span>
+        <span className="face back"><small>Back</small>{big ? <MathText className="prompt" text={decode(card.front)} /> : null}{card.say ? <SayPhrase text={card.say} /> : null}<MathText className="txt" text={decode(card.back)} /></span>
       </span>
     </button>
   );

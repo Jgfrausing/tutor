@@ -276,6 +276,7 @@ body:has(.panel:not([hidden])) #reader { right: calc(min(430px, 100vw) + 16px); 
 .flip.flipped .flip-inner { transform: rotateY(180deg); }
 .face { position: absolute; inset: 0; backface-visibility: hidden; border: 1px solid var(--border); border-radius: 10px; padding: 1.4rem 0.9rem 0.8rem; background: var(--surface); overflow: auto; font-size: 0.92rem; display: flex; flex-direction: column; }
 .face .txt { margin: auto 0; }
+.face .prompt { display: block; color: var(--muted); font-size: 0.8em; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
 .cards-grid .face { overflow: hidden; }
 .cards-grid .face .txt { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .cards-grid .flip:hover .face, .cards-grid .flip:focus-visible .face { border-color: var(--accent); }
