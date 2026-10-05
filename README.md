@@ -40,7 +40,7 @@ npm run build
 python3 -m unittest discover tests
 ```
 
-The tests start the server on a free port against a small temporary curriculum and state folder. They cover the pages, `/files/` and path traversal, quiz XP, card intervals and first-review dates, bad input, notes and `build`. They need no network and touch nothing outside the temporary folder.
+The tests run the server as a separate process, from the command in `$TUTOR_CMD` (default `python3 server.py`), with `--port 0` against a small temporary curriculum and state folder, and read the bound port from the startup line. They cover the pages and boot JSON, `/files/`, `/assets/` and path traversal, quiz XP, card intervals, the other progress kinds, bad input, notes, replies and deletes, the markdown export, the journal, the wake guard, the TTS cache key, `wait`, `reply` and `list`, the content version, the glossary merge and `build` block ids. They need no network and touch nothing outside the temporary folder.
 
 ## Making a curriculum
 

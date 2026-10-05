@@ -506,7 +506,9 @@ def view(notes, n):
 
 
 def cmd_serve(args):
+    global PORT
     server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    PORT = server.server_address[1]
     print(f"serving {ROOT} with state in {STATE} on http://127.0.0.1:{PORT}/", flush=True)
     server.serve_forever()
 
