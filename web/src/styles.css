@@ -253,6 +253,7 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 .say-ctl .romaji { color: var(--muted); font-style: italic; font-size: 0.85em; margin-right: 0.2rem; }
 .say-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.3rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--accent); cursor: pointer; font-size: 0.75rem; font-weight: 600; line-height: 1; user-select: none; }
 .say-btn:hover, .say-btn:focus-visible { border-color: var(--accent); outline: none; }
+.say-btn.busy { background: var(--accent); border-color: var(--accent); color: var(--bg); animation: say-pulse 1s infinite; }
 .say-btn.mic { color: var(--accent-2); }
 .say-btn.live { background: var(--danger); border-color: var(--danger); color: var(--bg); animation: say-pulse 1s infinite; }
 @keyframes say-pulse { 50% { opacity: 0.55; } }

@@ -26,19 +26,22 @@ interface Props {
 export function SayControls({ text, romaji, showRomaji }: Props) {
   const [live, setLive] = useState(false);
   const [out, setOut] = useState<ListenResult | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const btn = (cls: string, label: string, icon: string, fn: () => void) => (
-    <span className={"say-btn " + cls + (cls === "mic" && live ? " live" : "")} role="button" tabIndex={0} aria-label={label} title={label}
+    <span className={"say-btn " + cls + (cls === "mic" && live ? " live" : "") + (busy === cls ? " busy" : "")} aria-busy={busy === cls} role="button" tabIndex={0} aria-label={label} title={label}
       dangerouslySetInnerHTML={{ __html: icon }} {...press(fn)} />
   );
-  const play = () => speak(text, 0.9).then(ok => {
+  const play = () => { setBusy("play"); speak(text, 0.9).then(ok => {
+    setBusy(null);
     if (!ok) setOut({ cls: "", note: "No speech output: the server could not run say and this browser has no Japanese voice." });
-  });
+  }); };
+  const slow = () => { setBusy("slow"); speak(text, 0.55).then(() => setBusy(null)); };
   return (
     <>
       <span className="say-ctl no-gloss">
         {showRomaji && romaji ? <span className="romaji">{romaji}</span> : null}
         {btn("play", "Play", ICON_PLAY, play)}
-        {btn("slow", "Play slowly", "½", () => { speak(text, 0.55); })}
+        {btn("slow", "Play slowly", "½", slow)}
         {btn("mic", "Say it", ICON_MIC, () => listen(text, romaji, setLive, setOut))}
       </span>
       <span className={"say-out" + (out && out.cls ? " " + out.cls : "")} hidden={!out}>
