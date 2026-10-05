@@ -147,7 +147,7 @@ export function SkillTree({ progress }: { progress: Progress }) {
               {shape === "hex"
                 ? <polygon points={`${c},0 ${NW - c},0 ${NW},${NH / 2} ${NW - c},${NH} ${c},${NH} 0,${NH / 2}`} fill="var(--surface)" stroke="none" />
                 : <rect width={NW} height={NH} rx={shape === "sharp" ? 4 : 12} fill="var(--surface)" stroke="none" />}
-              <g opacity={st === "locked" ? "0.55" : "1"}>
+              <g opacity={st === "locked" ? "0.7" : "1"}>
               {shape === "hex"
                 ? <polygon points={`${c},0 ${NW - c},0 ${NW},${NH / 2} ${NW - c},${NH} ${c},${NH} 0,${NH / 2}`} fill={fill} stroke={color} strokeDasharray={st === "completed" ? "" : "4 3"} />
                 : <rect width={NW} height={NH} rx={shape === "sharp" ? 4 : 12} fill={fill} stroke={color} strokeWidth={kindOf(n.kind).emphasis ? 3 : 2} />}
