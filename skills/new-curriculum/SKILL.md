@@ -73,6 +73,8 @@ python3 -c "import json,os; [print('MISSING', d, n['id']) for n in json.load(ope
 python3 "$TUTOR/server.py" --root . --state <state folder> build
 ```
 
+Collect the terms each writer reported as "left to another category" and check that each one is defined in some terms file. Add any that are missing to the terms file of the node that teaches them most, in the right category.
+
 `build` assigns block ids and lists problems; run it again until it lists none. Always pass `--state`: without it, `server.py` creates a stray state folder under `~/.tutor`.
 
 For a spoken language other than Japanese, collect every `<em lang="..">word</em> (RESPELLING, ...)` pair across the lessons and cards, and make each word use one respelling everywhere:
