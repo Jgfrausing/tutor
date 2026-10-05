@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useApp } from "../context";
 import { errMsg } from "../lib/api";
-import { NODE } from "../lib/boot";
-import { allCards, dueCards, passed, shuffle } from "../lib/progress";
+import { NEW_PER_DAY, NODE } from "../lib/boot";
+import { allCards, dueCards, newCardsWaiting, passed, shuffle } from "../lib/progress";
 import { FlipCard } from "./FlipCard";
 
 export function CardsPage() {
   const { progress, postProgress, showToast } = useApp();
   const [queue, setQueue] = useState(() => shuffle(dueCards(progress)));
   const [total] = useState(() => allCards().filter(c => passed(progress, c.topic)).length);
+  const [unseen] = useState(() => newCardsWaiting(progress));
   const [turn, setTurn] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ export function CardsPage() {
   return (
     <main id="main">
       <h1>Flip card review</h1>
-      <p className="lede">{`Cards from lessons you have completed (${total} cards so far). "Got it" moves a card to a longer interval (1, 2, 4, 8, 16, 32 days); "Again" brings it back today. Each "Got it" on a due card is worth 2 XP.`}</p>
+      <p className="lede">{`Cards from lessons you have completed (${total} cards so far). "Got it" moves a card to a longer interval (1, 2, 4, 8, 16, 32 days); "Again" brings it back today. Each "Got it" on a due card is worth 2 XP. Up to ${NEW_PER_DAY} new cards join each day${unseen ? `; ${unseen} you have not seen yet` : ""}.`}</p>
       <div className="review">
         {!c ? (
           <p className="empty">{total ? "Nothing due. Come back tomorrow, or complete another lesson to add its cards. " : "Complete a lesson (pass its quiz) to add its cards here. "}<a href="/">Go to the tree</a></p>

@@ -426,7 +426,7 @@ def update_progress(body):
         elif kind == "card":
             card = str(body["card"])
             today = datetime.date.today()
-            c = p["cards"].setdefault(card, {"box": 0, "due": today.isoformat()})
+            c = p["cards"].setdefault(card, {"box": 0, "due": today.isoformat(), "first": today.isoformat()})
             was_due = c["due"] <= today.isoformat()
             if body.get("correct"):
                 c["box"] = min(c["box"] + 1, len(INTERVALS))

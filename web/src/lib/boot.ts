@@ -13,6 +13,7 @@ export const xpOf = (k: string) => kindOf(k).xp || 0;
 export const colorOf = (k: string) => `var(--${kindOf(k).color || "accent"})`;
 export const isSide = (n: CNode) => !!kindOf(n.kind).side_quest;
 export const XP_PER_LEVEL = CFG.xp_per_level || 250;
+export const NEW_PER_DAY = CFG.new_cards_per_day || 20;
 export const PASS_MARK = CFG.pass_mark || 0.7;
 export const PASS_PCT = Math.round(PASS_MARK * 100) + "%";
 export const RANKS = CFG.ranks && CFG.ranks.length ? CFG.ranks : ["Learner"];

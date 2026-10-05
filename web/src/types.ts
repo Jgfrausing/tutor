@@ -45,6 +45,7 @@ export interface Config {
   lede?: string;
   pass_mark?: number;
   xp_per_level?: number;
+  new_cards_per_day?: number;
   kinds?: Record<string, Kind>;
   ranks?: string[];
   badges?: BadgeDef[];
@@ -106,6 +107,7 @@ export interface CardProgress {
   box: number;
   due: string;
   reviews?: number;
+  first?: string;
 }
 
 export interface ProgressEvent {

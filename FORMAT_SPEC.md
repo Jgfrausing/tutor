@@ -11,6 +11,7 @@ The platform serves any curriculum folder that holds a `curriculum.json`. The fo
     "lede": "One sentence shown under the title.",
     "pass_mark": 0.7,
     "xp_per_level": 250,
+    "new_cards_per_day": 20,
     "kinds": {"concept": {"label": "Concept", "xp": 100, "color": "accent"}, "math": {"label": "Side quest", "xp": 75, "color": "accent-2", "side_quest": true}},
     "ranks": ["Level 1 title", "Level 2 title"],
     "badges": [{"name": "First steps", "desc": "Complete any node", "rule": {"type": "count_passed", "n": 1}}],
@@ -23,6 +24,7 @@ The platform serves any curriculum folder that holds a `curriculum.json`. The fo
 ```
 
 - Kind fields: `label`, `xp`, `color` (a palette token from `web/src/styles.css`: `accent`, `accent-2`, `ok`, `gold`, `lab`, `danger`, `question`, `comment`), optional `shape` (`rounded`, `sharp`, `hex`), `emphasis` (thicker border), `legend: false` (hide from the tree legend) and `side_quest` (optional node that opens when any node in its `attached_to` list opens).
+- `new_cards_per_day` (default 20) caps how many never-seen flip cards join the review each day, so finishing several lessons does not leave a pile of a hundred cards. Cards already in review are always due on their date.
 - Badge rule types: `passed` (`node`), `all_passed` (`nodes`), `count_passed` (`kind` optional, `n`), `all_of_kind` (`kind`), `cards_reviewed` (`n`), `perfect_quiz` (`kind` optional).
 - A node can carry `paper: {authors, year, venue, title, url, local}`; the lesson page then shows a paper box. `local` is a path inside the curriculum folder, served under `/files/`.
 

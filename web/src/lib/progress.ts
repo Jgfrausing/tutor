@@ -1,5 +1,5 @@
 import type { CNode, Progress, TopicCard } from "../types";
-import { BOOT, CFG, NODE, NODES, RANKS, XP_PER_LEVEL, isSide } from "./boot";
+import { BOOT, CFG, NEW_PER_DAY, NODE, NODES, RANKS, XP_PER_LEVEL, isSide } from "./boot";
 
 export type NodeState = "completed" | "available" | "locked";
 
@@ -25,7 +25,15 @@ export function allCards(): TopicCard[] {
 }
 
 export function dueCards(p: Progress): TopicCard[] {
-  return allCards().filter(c => passed(p, c.topic) && (!p.cards[c.id] || p.cards[c.id].due <= today()));
+  const open = allCards().filter(c => passed(p, c.topic));
+  const seen = open.filter(c => p.cards[c.id] && p.cards[c.id].due <= today());
+  const newToday = Object.values(p.cards).filter(c => c.first === today()).length;
+  const fresh = open.filter(c => !p.cards[c.id]).slice(0, Math.max(0, NEW_PER_DAY - newToday));
+  return [...seen, ...fresh];
+}
+
+export function newCardsWaiting(p: Progress): number {
+  return allCards().filter(c => passed(p, c.topic) && !p.cards[c.id]).length;
 }
 
 const reviewsDone = (p: Progress) => Object.values(p.cards).reduce((sum, c) => sum + (c.reviews || 0), 0);
