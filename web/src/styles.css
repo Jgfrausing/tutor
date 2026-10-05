@@ -220,6 +220,8 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 .node rect, .node polygon { stroke-width: 2; transition: filter 0.15s; }
 .node:hover rect, .node:hover polygon, .node:focus-visible rect, .node:focus-visible polygon { filter: brightness(1.15); }
 .node:focus { outline: none; }
+.node:focus-visible rect, .node:focus-visible polygon { stroke-width: 4; filter: drop-shadow(0 0 5px var(--accent)); }
+.node:focus-visible g { opacity: 1; }
 .node text { font-size: 12px; fill: var(--fg); pointer-events: none; }
 .node .sub { font-size: 10px; fill: var(--muted); }
 .node.locked text { fill: var(--muted); }
