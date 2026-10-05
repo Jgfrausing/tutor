@@ -4,21 +4,23 @@ A local study site for any subject laid out as a skill tree. The site has lesson
 
 The platform holds no subject matter. Each curriculum is a folder with a `curriculum.json`, and `FORMAT_SPEC.md` describes the files it needs.
 
-## Build
+## Install
 
-The server is a Rust program. Build it once, and again after changing `src/`:
+The server is one Rust binary, `tutor`, with the web UI compiled in. Install it with Cargo:
 
 ```sh
-cargo build --release
+cargo install --git https://github.com/Jgfrausing/tutor
 ```
 
-This writes the binary `target/release/tutor`. It reads the web UI from the `dist/` folder next to `target/`, so run it from where it was built.
+From a checkout of this repository, `cargo install --path .` does the same. Either puts `tutor` in `~/.cargo/bin`.
 
 ## Run
 
 ```sh
-target/release/tutor --root ~/notes/market-simulation --state ~/notes/study-state/market-simulation --port 8765 serve
+tutor --root ~/notes/my-subject --state ~/notes/study-state/my-subject --port 8765 serve
 ```
+
+Then open http://127.0.0.1:8765/.
 
 `--port 0` binds a free port; the startup line names the port it bound.
 
@@ -44,7 +46,7 @@ npm install
 npm run build
 ```
 
-`npm run build` type-checks with `tsc` and writes the bundle to `dist/` in the repository root. Commit `dist/` with the source change. KaTeX and highlight.js load from cdnjs through script tags in `web/index.html`, not from npm.
+`npm run build` type-checks with `tsc` and writes the bundle to `dist/` in the repository root. Commit `dist/` with the source change, and run `cargo install --path .` again, since the binary embeds `dist/` when it is compiled. KaTeX and highlight.js load from cdnjs through script tags in `web/index.html`, not from npm.
 
 ## Tests
 
@@ -53,7 +55,7 @@ cargo build --release
 python3 -m unittest discover tests
 ```
 
-The tests run the server as a separate process, from the command in `$TUTOR_CMD` (default `target/release/tutor`), with `--port 0` against a small temporary curriculum and state folder, and read the bound port from the startup line. They cover the pages and boot JSON, `/files/`, `/assets/` and path traversal, quiz XP, card intervals, the other progress kinds, bad input, notes, replies and deletes, the markdown export, the journal, the wake guard, the TTS cache key, `wait`, `reply` and `list`, the content version, the glossary merge and `build` block ids. They need no network and touch nothing outside the temporary folder. Python 3 runs the tests only; the server does not need it.
+The tests run the server as a separate process, from the command in `$TUTOR_CMD` (default `target/release/tutor`, which `cargo build --release` writes; `TUTOR_CMD=tutor` tests the installed binary), with `--port 0` against a small temporary curriculum and state folder, and read the bound port from the startup line. They cover the pages and boot JSON, `/files/`, `/assets/` and path traversal, quiz XP, card intervals, the other progress kinds, bad input, notes, replies and deletes, the markdown export, the journal, the wake guard, the TTS cache key, `wait`, `reply` and `list`, the content version, the glossary merge and `build` block ids. They need no network and touch nothing outside the temporary folder. Python 3 runs the tests only; the server does not need it.
 
 ## Making a curriculum
 
@@ -70,15 +72,7 @@ Then ask Claude Code for "a new curriculum on <subject>".
 | File | What it holds |
 |---|---|
 | `web/` | The web UI: React 18 and TypeScript, built with Vite. Components are in `web/src/components/` (tree, lesson, quiz, cards, glossary, notes threads, journal, read-aloud player), shared logic in `web/src/lib/` and the styles in `web/src/styles.css`. It reads kinds, ranks, badges and strings from the curriculum's `config` |
-| `dist/` | The built UI, committed so that running the server needs no Node. The server fills `dist/index.html` with the page's boot JSON (the lesson HTML travels in its `fragment` field) and serves `dist/assets/` under `/assets/` |
+| `dist/` | The built UI, committed so that building the server needs no Node. `build.rs` embeds every file in it into the binary. The server fills `index.html` with the page's boot JSON (the lesson HTML travels in its `fragment` field) and serves `assets/` under `/assets/` |
 | `src/` | The HTTP server and CLI, in Rust (`Cargo.toml` at the root, binary `tutor`). `main.rs` parses the command line, `http.rs` serves HTTP/1.0 with `std::net`, `tutor.rs` holds the routes, notes, progress, export and `build`, and `json.rs` reads and writes JSON with the same key order, spacing, escapes, float digits and decode error messages as Python's `json` module, so state folders written by the earlier Python server load unchanged. It keeps state in the `--state` folder: `notes.json`, `notes/<id>.md`, `journal/<id>.md`, `progress.json`, the TTS cache and the listener heartbeat |
 | `tests/` | Black-box tests that start the server as a subprocess |
 | `FORMAT_SPEC.md` | The contract for a curriculum folder |
-
-## Installed curricula
-
-| Curriculum | State | Port | launchd agent |
-|---|---|---|---|
-| `~/notes/market-simulation` | `~/notes/study-state/market-simulation` | 8765 | `~/Library/LaunchAgents/com.jfr.market-sim-notes.plist` |
-| `~/notes/tokyo` | `~/notes/study-state/tokyo` | 8766 | none yet |
-| `~/notes/watercolor` | `~/notes/study-state/watercolor` | 8767 | none yet |

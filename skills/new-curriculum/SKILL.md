@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent, AskUserQuestion
 
 A tutor curriculum is a folder that the `tutor` binary serves: `curriculum.json`, `AUDIENCE.md`, and per node `topics/<id>.html`, `quizzes/<id>.json`, `cards/<id>.json` and `terms/<id>.json`. `FORMAT_SPEC.md` in the tutor repo is the contract for every one of those files. Read it before anything else.
 
-The tutor repo is two directories above this skill's real path (`skills/new-curriculum/` inside the repo). Resolve symlinks to find it, and call it `TUTOR` below. `TUTOR/FORMAT_SPEC.md` must exist; stop and say so if it does not. The server is the binary `TUTOR/target/release/tutor`. If it is missing, build it with `cargo build --release` in `TUTOR`, and stop and say so if that fails.
+The tutor repo is two directories above this skill's real path (`skills/new-curriculum/` inside the repo). Resolve symlinks to find it, and call it `TUTOR` below. `TUTOR/FORMAT_SPEC.md` must exist; stop and say so if it does not. The server is the `tutor` binary. If `tutor` is not on the PATH, install it with `cargo install --path TUTOR`, and stop and say so if that fails.
 
 This skill writes the whole curriculum in one run. It never starts a server.
 
@@ -80,7 +80,7 @@ python3 -c "import json,glob; r=t=0
 for f in glob.glob('quizzes/*.json'):
   for q in json.load(open(f))['questions']: t+=1; r+=max(range(len(q['choices'])),key=lambda i:len(q['choices'][i]))==q['answer']
 print('longest choice is right in',r,'of',t)"
-"$TUTOR/target/release/tutor" --root . --state <state folder> build
+tutor --root . --state <state folder> build
 ```
 
 If the longest choice is right in more than about 30% of questions, a reader can pass by picking the longest. Rewrite those questions' choices to even out length and detail before going on.
@@ -115,7 +115,7 @@ Tell the user:
 - the command to run, which you do not run yourself:
 
 ```sh
-<TUTOR>/target/release/tutor --root <folder> --state <state folder> --port <free port> serve
+tutor --root <folder> --state <state folder> --port <free port> serve
 ```
 
 ## Special material

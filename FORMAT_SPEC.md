@@ -93,7 +93,7 @@ Do not repeat terms that already exist in the curriculum's `glossary_files` or i
 cd <curriculum folder>
 for f in quizzes/<id>.json cards/<id>.json terms/<id>.json; do python3 -m json.tool "$f" >/dev/null || echo "BAD $f"; done
 grep -n '[—–]' topics/<id>.html quizzes/<id>.json cards/<id>.json terms/<id>.json
-<tutor>/target/release/tutor --root . --state <state folder> build
+tutor --root . --state <state folder> build
 ```
 
 `build` assigns stable `data-cid` block ids (notes attach to them), checks the JSON and lists missing files.
