@@ -6,6 +6,8 @@ For each node write four files: topics/<id>.html, quizzes/<id>.json, cards/<id>.
 
 Other agents write the other nodes at the same time. Your glossary terms come only from these categories: {TERM_AREA}. The other groups own: {OTHER_TERM_AREAS}. A term that fits your topic but sits in another group's category is theirs; mention it in the lesson without defining it in your terms files. Define each term once across your files. Give a term no alias that is a common English word on its own ("flat", "lean", "tone"): the glossary underlines every match, so such an alias marks ordinary sentences.
 
+Quiz choices: all four similar in length (within about 1.3x) and in detail. Make wrong choices specific and plausible, and keep the right one to its point, so the longest choice is right in no more than about a quarter of your questions. The page shuffles choice order, so position does not matter, but length does.
+
 Each lesson uses exactly the h2 headings AUDIENCE.md sets for its kind, in that order. Check this before you move to the next node.
 
 Accuracy comes first. Do not invent facts, citations, numbers, prices or opening hours. When you are not sure, say less, and list the claim in your report. Link to other nodes with /t/<id> only for ids that exist in curriculum.json.

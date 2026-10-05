@@ -62,7 +62,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 ]}
 ```
 
-`answer` is the zero-based index. Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible.
+`answer` is the zero-based index. Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible, and as long and as specific as the right one: if the right answer is usually the longest, a reader passes by picking the longest.
 
 
 ## Cards file

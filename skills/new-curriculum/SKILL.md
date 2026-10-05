@@ -70,8 +70,14 @@ for f in quizzes/*.json cards/*.json terms/*.json; do python3 -m json.tool "$f" 
 grep -n '[—–]' topics/* quizzes/* cards/* terms/* AUDIENCE.md README.md
 python3 -c "import json,glob,collections; c=collections.Counter(t['term'].lower() for f in glob.glob('terms/*.json') for t in json.load(open(f))['terms']); print([t for t,n in c.items() if n>1])"
 python3 -c "import json,os; [print('MISSING', d, n['id']) for n in json.load(open('curriculum.json'))['nodes'] for d,e in [('topics','html'),('quizzes','json'),('cards','json'),('terms','json')] if not os.path.exists(f'{d}/{n[\"id\"]}.{e}')]"
+python3 -c "import json,glob; r=t=0
+for f in glob.glob('quizzes/*.json'):
+  for q in json.load(open(f))['questions']: t+=1; r+=max(range(len(q['choices'])),key=lambda i:len(q['choices'][i]))==q['answer']
+print('longest choice is right in',r,'of',t)"
 python3 "$TUTOR/server.py" --root . --state <state folder> build
 ```
+
+If the longest choice is right in more than about 30% of questions, a reader can pass by picking the longest. Rewrite those questions' choices to even out length and detail before going on.
 
 Collect the terms each writer reported as "left to another category" and check that each one is defined in some terms file. Add any that are missing to the terms file of the node that teaches them most, in the right category.
 
