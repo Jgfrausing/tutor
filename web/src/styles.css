@@ -51,8 +51,10 @@ pre code.hljs { background: transparent; padding: 0; }
 header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
 .top-inner { max-width: 72rem; margin: 0 auto; padding: 0.6rem 16px; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .brand { font-weight: 650; white-space: nowrap; color: var(--fg); text-decoration: none; }
+button.status.wake { font: inherit; font-size: 0.8rem; background: none; cursor: pointer; }
+button.status.wake:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .brand:hover { color: var(--accent); }
-.search { flex: 1 1 12rem; position: relative; }
+.search { flex: 1 1 9rem; position: relative; }
 .search input { width: 100%; padding: 0.45rem 0.7rem 0.45rem 2rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 0.95rem; }
 .search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .search svg { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); }

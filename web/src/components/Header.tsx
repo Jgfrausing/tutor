@@ -21,7 +21,7 @@ function SoundToggle() {
   return <button className="btn" id="sound-toggle" type="button" title="Sound effects for quiz results" onClick={() => { toggleSound(); setOn(soundOn()); }}>{on ? "Sound on" : "Sound off"}</button>;
 }
 
-function WakeButton({ hidden }: { hidden: boolean }) {
+function WakeButton() {
   const { showToast } = useApp();
   const [busy, setBusy] = useState(false);
   const wake = async () => {
@@ -32,7 +32,11 @@ function WakeButton({ hidden }: { hidden: boolean }) {
     } catch { showToast("Could not reach the server."); }
     setTimeout(() => setBusy(false), 60000);
   };
-  return <button className="btn" type="button" id="claude-wake" hidden={hidden} disabled={busy} onClick={wake}>{busy ? "Waking..." : "Wake Claude"}</button>;
+  return (
+    <button className="status wake" type="button" id="claude-wake" data-state="offline" disabled={busy} onClick={wake} title="No Claude session is listening. Click to ask the last one to start again.">
+      {busy ? "Waking Claude..." : "Claude offline: wake"}
+    </button>
+  );
 }
 
 function StatusChip() {
@@ -42,12 +46,8 @@ function StatusChip() {
   if (!online) label = onServer ? "Server stopped" : "Not on server";
   else if (working) { state = "working"; label = "Claude answering"; }
   else if (listening) { state = "listening"; label = "Claude listening"; }
-  return (
-    <>
-      <span className="status" id="claude-status" data-state={state}>{label}</span>
-      <WakeButton hidden={!(online && onServer && state === "offline")} />
-    </>
-  );
+  if (online && onServer && state === "offline") return <WakeButton />;
+  return <span className="status" id="claude-status" data-state={state}>{label}</span>;
 }
 
 interface Props {
