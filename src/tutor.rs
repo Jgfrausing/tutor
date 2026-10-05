@@ -60,20 +60,16 @@ pub struct App {
     pub root: PathBuf,
     pub state: PathBuf,
     pub port: AtomicI64,
-    dist: PathBuf,
     exe: PathBuf,
     last_wake: Mutex<f64>,
 }
 
 pub struct Lock(#[allow(dead_code)] fs::File);
 
-fn platform_dir(exe: &Path) -> PathBuf {
-    for dir in exe.ancestors().skip(1) {
-        if dir.join("dist").join("index.html").is_file() {
-            return dir.to_path_buf();
-        }
-    }
-    realpath(Path::new(env!("CARGO_MANIFEST_DIR")))
+include!(concat!(env!("OUT_DIR"), "/dist.rs"));
+
+fn embedded(name: &str) -> Option<&'static [u8]> {
+    DIST.iter().find(|(n, _)| *n == name).map(|(_, b)| *b)
 }
 
 pub fn read_text(path: &Path) -> R<Option<String>> {
@@ -519,12 +515,10 @@ impl App {
         let exe = std::env::current_exe()
             .map(|p| realpath(&p))
             .unwrap_or_else(|_| PathBuf::from("tutor"));
-        let dist = platform_dir(&exe).join("dist");
         Ok(App {
             root,
             state,
             port: AtomicI64::new(port),
-            dist,
             exe,
             last_wake: Mutex::new(0.0),
         })
@@ -546,8 +540,11 @@ impl App {
         self.state.join(name)
     }
 
-    fn app_html(&self) -> PathBuf {
-        self.dist.join("index.html")
+    fn app_html(&self) -> R<String> {
+        match embedded("index.html") {
+            Some(bytes) => Ok(String::from_utf8_lossy(bytes).into_owned()),
+            None => crash("the binary was built without dist/index.html"),
+        }
     }
 
     fn locked(&self) -> R<Lock> {
@@ -718,7 +715,11 @@ impl App {
 
     fn content_version(&self) -> R<String> {
         let mut h = Sha1::new();
-        let mut paths = vec![self.app_html(), self.curriculum_path()];
+        if let Some(index) = embedded("index.html") {
+            h.update(b"index.html");
+            h.update(index);
+        }
+        let mut paths = vec![self.curriculum_path()];
         for name in iter(&get_or(
             &self.config()?,
             "glossary_files",
@@ -853,7 +854,8 @@ impl App {
             "review" => format!("Mixed review: {}", py_str(&cur_title)),
             _ => as_str(&cur_title)?.to_string(),
         };
-        Ok(read_text_required(&self.app_html())?
+        Ok(self
+            .app_html()?
             .replace("__TITLE__", &html_escape(&title, true))
             .replace("__BOOT_JSON__", &blob))
     }
@@ -1314,11 +1316,9 @@ impl App {
                 return Ok(Resp::html(self.render("topic", Some(t))?));
             }
         }
-        if path.starts_with("/assets/") {
-            let target = realpath(&self.dist.join(&path[1..]));
-            let assets = self.dist.join("assets");
-            if target.starts_with(&assets) && target != assets && target.is_file() {
-                return Ok(Resp::new(200, fs::read(&target)?, &asset_type(&target)));
+        if let Some(name) = path.strip_prefix("/assets/") {
+            if let Some(bytes) = embedded(&format!("assets/{name}")) {
+                return Ok(Resp::new(200, bytes.to_vec(), &asset_type(Path::new(name))));
             }
             return Ok(Resp::not_found());
         }
