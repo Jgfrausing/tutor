@@ -81,3 +81,4 @@ Then ask Claude Code for "a new curriculum on <subject>".
 |---|---|---|---|
 | `~/notes/market-simulation` | `~/notes/study-state/market-simulation` | 8765 | `~/Library/LaunchAgents/com.jfr.market-sim-notes.plist` |
 | `~/notes/tokyo` | `~/notes/study-state/tokyo` | 8766 | none yet |
+| `~/notes/watercolor` | `~/notes/study-state/watercolor` | 8767 | none yet |
