@@ -31,7 +31,7 @@ CURRICULUM = {
 
 def tutor_cmd():
     cmd = os.environ.get("TUTOR_CMD")
-    return shlex.split(cmd) if cmd else [sys.executable, str(REPO / "server.py")]
+    return shlex.split(cmd) if cmd else [str(REPO / "target" / "release" / "tutor")]
 
 
 def make_curriculum(base, curriculum=CURRICULUM):
