@@ -68,15 +68,37 @@ export function glossarize(root: HTMLElement | null, inThread: boolean) {
   }
 }
 
-export function score(t: Term, q: string) {
-  const name = t.term.toLowerCase();
-  const aliases = (t.aliases || []).map(a => a.toLowerCase());
+const norm = (x: string) => x.toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+
+export function score(t: Term, raw: string) {
+  const q = norm(raw);
+  const name = norm(t.term);
+  const aliases = (t.aliases || []).map(norm);
   if (name === q || aliases.includes(q)) return 0;
   if (name.startsWith(q)) return 1;
   if (aliases.some(a => a.startsWith(q))) return 2;
   if (name.includes(q)) return 3;
   if (aliases.some(a => a.includes(q))) return 4;
   if ((t.category || "").includes(q)) return 5;
-  if (t.definition.toLowerCase().includes(q)) return 6;
+  const definition = norm(t.definition);
+  if (definition.includes(q)) return 6;
+  const hay = [name, ...aliases, norm(t.category || ""), definition].join(" ");
+  const words = q.split(" ").filter(w => w.length >= 3);
+  if (words.length > 1 && words.every(w => hay.includes(w))) return 7;
+  if (q.length >= 4) {
+    const limit = q.length >= 7 ? 2 : 1;
+    const candidates = [name, ...aliases].flatMap(x => [x, ...x.split(" ")]);
+    if (candidates.some(c => Math.abs(c.length - q.length) <= limit && distance(c, q) <= limit)) return 8;
+  }
   return -1;
+}
+
+function distance(a: string, b: string) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
 }
