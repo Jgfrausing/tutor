@@ -62,7 +62,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 ]}
 ```
 
-`answer` is the zero-based index. Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible.
+`answer` is the zero-based index into `choices` as written. The page shows the choices in a shuffled order that stays the same for each question, so the position of the right answer in the file does not matter, and no choice may refer to another by position ("both of the above"). Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible.
 
 
 ## Cards file

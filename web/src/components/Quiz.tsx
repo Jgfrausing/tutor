@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { errMsg } from "../lib/api";
 import { NODE, NODES, PASS_MARK, PASS_PCT, TOPIC, onServer, xpOf } from "../lib/boot";
-import { decode } from "../lib/dom";
+import { choiceOrder, decode } from "../lib/dom";
 import { nodeState, passed } from "../lib/progress";
 import { confetti, playSound } from "../lib/sound";
 import type { Question } from "../types";
@@ -103,10 +103,10 @@ export function Quiz({ questions: qs, review }: Props) {
         <div className="quiz-q" key={qi}>
           <MathText as="p" className="q" text={`${qi + 1}. ${decode(q.q)}`} />
           {q.topic ? <p className="panel-sub">From <a href={"/t/" + q.topic}>{NODE[q.topic].title}</a></p> : null}
-          {q.choices.map((c, ci) => (
+          {choiceOrder(q.choices.length, q.q).map(ci => (
             <label key={ci} className={graded ? (ci === q.answer ? "right" : answers[qi] === ci ? "wrong" : "") : ""}>
               <input type="radio" name={"q" + qi} value={String(ci)} checked={answers[qi] === ci} disabled={graded} onChange={() => choose(qi, ci)} />
-              <MathText text={decode(c)} />
+              <MathText text={decode(q.choices[ci])} />
             </label>
           ))}
           <MathText as="p" className="explain" text={decode(q.explain || "")} hidden={!graded} />

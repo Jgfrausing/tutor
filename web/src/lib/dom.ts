@@ -47,3 +47,20 @@ export function morph(node: HTMLElement, fromRect: DOMRect | null | undefined, r
   const frames = reverse ? [{ transform: "none" }, { transform: t, opacity: 0.4 }] : [{ transform: t, opacity: 0.4 }, { transform: "none", opacity: 1 }];
   return node.animate(frames, { duration: 280, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "forwards" }).finished.then(() => {}, () => {});
 }
+
+export function choiceOrder(n: number, key: string): number[] {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  const rand = () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
