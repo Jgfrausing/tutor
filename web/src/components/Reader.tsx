@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 interface Seg {
   lang: "en" | "ja";
@@ -141,6 +142,11 @@ export function Reader({ docRef }: { docRef: RefObject<HTMLElement> }) {
   const btn = (label: string, title: string, fn: () => void, cls: string, hidden: boolean) => (
     <button type="button" title={title} aria-label={title} className={cls} onClick={fn} hidden={hidden}>{label}</button>
   );
+  const [tocHost, setTocHost] = useState<HTMLElement | null>(null);
+  useEffect(() => { setTocHost(document.getElementById("toc-reader")); }, []);
+  if (tocHost && !running) {
+    return createPortal(<button type="button" className="toc-read" title="Read this page aloud, from the block at the top of the screen" onClick={begin}>Read aloud</button>, tocHost);
+  }
   return (
     <div id="reader">
       {btn("Read aloud", "Read this page aloud, from the block at the top of the screen", begin, "main", running)}

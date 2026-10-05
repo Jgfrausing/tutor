@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { drafts, useApp } from "../context";
 import { api, errMsg } from "../lib/api";
 import { PLATFORM, TOPIC, TYPE_LABEL } from "../lib/boot";
@@ -95,6 +95,13 @@ export function Thread({ block, visible, active, after, onClose, relayout }: Pro
   const { notes } = useApp();
   const ref = useRef<HTMLDivElement>(null);
   const [openReplies, setOpenReplies] = useState<Set<string>>(() => new Set());
+  const roots = rootsFor(notes, block.id);
+  const [composing, setComposing] = useState(roots.length === 0);
+  const seen = useRef(roots.length);
+  useEffect(() => {
+    if (roots.length > seen.current) setComposing(false);
+    seen.current = roots.length;
+  }, [roots.length]);
   useLayoutEffect(() => {
     const t = ref.current;
     if (t && after && after.nextSibling !== t) after.after(t);
@@ -109,7 +116,7 @@ export function Thread({ block, visible, active, after, onClose, relayout }: Pro
     <div className={"thread" + (active ? " active" : "")} hidden={!visible} data-bid={block.id} ref={ref}
       onMouseEnter={() => block.el.classList.add("linked")} onMouseLeave={() => block.el.classList.remove("linked")}>
       <div className="thread-list">
-        {rootsFor(notes, block.id).map(root => (
+        {roots.map(root => (
           <Fragment key={root.id}>
             <NoteView n={root} isReply={false} />
             {repliesFor(notes, root.id).map(r => <NoteView key={r.id} n={r} isReply />)}
@@ -119,7 +126,9 @@ export function Thread({ block, visible, active, after, onClose, relayout }: Pro
           </Fragment>
         ))}
       </div>
-      <NewForm block={block} onClose={onClose} />
+      {composing || roots.length === 0
+        ? <NewForm block={block} onClose={onClose} />
+        : <div className="thread-foot"><button className="linkish" type="button" onClick={() => setComposing(true)}>New question or comment</button><button className="linkish" type="button" onClick={onClose}>Close</button></div>}
     </div>
   );
 }

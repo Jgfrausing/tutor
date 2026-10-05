@@ -183,6 +183,7 @@ export function LessonPage() {
           {toc.map(t => <li key={t.id}><a href={"#" + t.id}><MathText text={t.label} /></a></li>)}
           {BOOT.cards[TOPIC] ? <li><a href="#cards">Flip cards</a></li> : null}
           {BOOT.quiz ? <li><a href="#quiz">Quiz</a></li> : null}
+          {onServer ? <li id="toc-reader" /> : null}
         </ul>
         <article id="doc" ref={docRef} dangerouslySetInnerHTML={{ __html: html }} />
         <div id="extras">

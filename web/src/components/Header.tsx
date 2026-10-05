@@ -68,7 +68,7 @@ export function Header({ query, inputRef, onQuery, onFocusSearch }: Props) {
         <a className="brand" href="/">Tutor</a>
         <label className="search">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="7" cy="7" r="5" /><path d="M11 11l3.5 3.5" /></svg>
-          <input id="gsearch" ref={inputRef} type="search" placeholder="Search the glossary" autoComplete="off" aria-label="Search the glossary"
+          <input id="gsearch" ref={inputRef} type="search" placeholder="Search terms" autoComplete="off" aria-label="Search the glossary"
             value={query} onChange={e => onQuery(e.target.value)} onFocus={onFocusSearch} />
           <kbd>/</kbd>
         </label>
