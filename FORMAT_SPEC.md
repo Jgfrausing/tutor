@@ -47,6 +47,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 ```
 
 - Figures: `<figure class="fig"><img src="/files/figures/<name>.svg" alt="What the figure shows"><figcaption>One or two sentences.</figcaption></figure>`. Put the image and the script that generates it in the curriculum's `figures/` folder. SVG is preferred; give it its own `prefers-color-scheme: dark` styles, since an SVG loaded as an image cannot read the page's colours. Answers to questions can show a figure with markdown image syntax, `![alt](/files/figures/<name>.svg)`.
+- Spoken phrases: `<span class="say" lang="ja" data-romaji="sumimasen" data-en="excuse me">すみません</span>`. The page adds a play button, a slow play button and a microphone button after the span. Play uses the browser's speech synthesis with a `ja-JP` voice; the mic records the reader, transcribes it with the browser's speech recognition where available, scores the match against the span text (and against `data-romaji` when the transcript is kana), and offers "Hear yourself" and "Compare" playback. `data-say` overrides the text that is spoken and matched. A card can carry `"say": "..."`; it is shown on the back face with the same buttons.
 - Math is rendered with KaTeX. Inline math uses `\( ... \)`, display math uses `\[ ... \]` inside `<div class="math">`. Never use `$` as a math delimiter. Escape `<`, `>` and `&` in HTML text and code as `&lt;`, `&gt;`, `&amp;` (inside `\( \)` too: write `t_i &lt; t`).
 - Link to other nodes with `<a href="/t/<node-id>">Title</a>`. Link to external papers with full URLs.
 - Put commentable content in block elements (p, li, tr, div.math, div.codewrap). Keep paragraphs short (2 to 5 sentences).
@@ -90,7 +91,7 @@ Do not repeat terms that already exist in the curriculum's `glossary_files` or i
 cd <curriculum folder>
 for f in quizzes/<id>.json cards/<id>.json terms/<id>.json; do python3 -m json.tool "$f" >/dev/null || echo "BAD $f"; done
 grep -n '[—–]' topics/<id>.html quizzes/<id>.json cards/<id>.json terms/<id>.json
-python3 ~/code/study-tree/server.py --root . build
+python3 ~/code/tutor/server.py --root . build
 ```
 
 `build` assigns stable `data-cid` block ids (notes attach to them), checks the JSON and lists missing files.

@@ -11,6 +11,8 @@ import mimetypes
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -26,10 +28,10 @@ SERVABLE = {".pdf", ".py", ".sql", ".png", ".jpg", ".svg", ".csv", ".json", ".md
 
 
 def configure(root, port, state=None):
-    global ROOT, STATE, PORT, CURRICULUM, TOPICS, QUIZZES, CARDS, TERMS, NOTES_MD, JOURNAL, NOTES, PROGRESS, LOCK, HEARTBEAT
+    global ROOT, STATE, PORT, CURRICULUM, TOPICS, QUIZZES, CARDS, TERMS, NOTES_MD, JOURNAL, NOTES, PROGRESS, LOCK, HEARTBEAT, WAKE
     ROOT = pathlib.Path(root).expanduser().resolve()
     PORT = port
-    default_state = pathlib.Path.home() / ".study-tree" / re.sub(r"[^a-z0-9]+", "-", ROOT.name.lower())
+    default_state = pathlib.Path.home() / ".tutor" / re.sub(r"[^a-z0-9]+", "-", ROOT.name.lower())
     STATE = pathlib.Path(state).expanduser().resolve() if state else default_state
     STATE.mkdir(parents=True, exist_ok=True)
     CURRICULUM = ROOT / "curriculum.json"
@@ -43,6 +45,7 @@ def configure(root, port, state=None):
     PROGRESS = STATE / "progress.json"
     LOCK = STATE / ".notes.lock"
     HEARTBEAT = STATE / ".watcher-heartbeat"
+    WAKE = STATE / ".wake-pane"
     if not CURRICULUM.exists():
         raise SystemExit(f"no curriculum.json in {ROOT}")
 
@@ -228,6 +231,29 @@ def listening():
         return False
 
 
+LAST_WAKE = [0.0]
+
+
+def wake():
+    if listening():
+        return {"ok": True, "detail": "already listening"}
+    if time.time() - LAST_WAKE[0] < 60:
+        return {"ok": True, "detail": "already woken, give it a minute"}
+    if not WAKE.exists():
+        return {"ok": False, "detail": "no Claude session has listened from tmux yet"}
+    target = json.loads(WAKE.read_text())
+    tmux = shutil.which("tmux") or str(pathlib.Path.home() / ".local/bin/tmux")
+    base = [tmux, "-S", target["socket"]]
+    if subprocess.run([*base, "has-session", "-t", target["pane"]], capture_output=True).returncode:
+        return {"ok": False, "detail": "the Claude session that last listened is gone"}
+    msg = f"Tutor wake button: start the tutor listener again (python3 {pathlib.Path(__file__).resolve()} --root {ROOT} --state {STATE} wait, in the background) and answer what comes in."
+    subprocess.run([*base, "send-keys", "-t", target["pane"], "-l", msg], check=True)
+    time.sleep(0.4)
+    subprocess.run([*base, "send-keys", "-t", target["pane"], "Enter"], check=True)
+    LAST_WAKE[0] = time.time()
+    return {"ok": True, "detail": "woken"}
+
+
 def thread_of(notes, root_id):
     return [n for n in notes if n["id"] == root_id or n.get("parent") == root_id]
 
@@ -303,6 +329,32 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send(200, target.read_bytes(), mimetypes.guess_type(target.name)[0] or "application/octet-stream")
             else:
                 self.send(404, '{"error":"not found"}')
+        elif path == "/api/tts":
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            text = (query.get("text") or [""])[0].strip()[:2000]
+            slow = (query.get("slow") or ["0"])[0] == "1"
+            english = (query.get("lang") or ["ja"])[0] == "en"
+            edge = shutil.which("edge-tts") or str(pathlib.Path.home() / ".local/bin/edge-tts")
+            engine = "edge" if os.access(edge, os.X_OK) else "say" if shutil.which("say") else None
+            if not text or not engine:
+                self.send(404, '{"error":"no tts"}')
+                return
+            cache = STATE / ".tts"
+            cache.mkdir(exist_ok=True)
+            suffix = ".mp3" if engine == "edge" else ".wav"
+            target = cache / (hashlib.sha1(f"{engine}:{slow}:{english}:{text}".encode()).hexdigest() + suffix)
+            if not target.exists():
+                tmp = target.with_suffix(".tmp" + suffix)
+                if engine == "edge":
+                    cmd = [edge, "--voice", "en-US-AvaNeural" if english else "ja-JP-NanamiNeural", "--rate=" + ("-35%" if slow else "+0%" if english else "-5%"), "--text", text, "--write-media", str(tmp)]
+                else:
+                    cmd = ["say", "-v", "Samantha" if english else "Kyoko", *(["-r", "110"] if slow else []), "--data-format=LEI16@22050", "-o", str(tmp), text]
+                done = subprocess.run(cmd, capture_output=True, timeout=30)
+                if done.returncode or not tmp.exists():
+                    self.send(500, json.dumps({"error": done.stderr.decode()[:200]}))
+                    return
+                tmp.replace(target)
+            self.send(200, target.read_bytes(), "audio/mpeg" if suffix == ".mp3" else "audio/wav")
         elif path == "/api/state":
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             topic = (query.get("topic") or [None])[0]
@@ -320,6 +372,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             path = self.path.split("?")[0]
             if path == "/api/notes":
                 self.send(200, json.dumps(mutate(lambda notes: add_from_page(notes, body))))
+            elif path == "/api/wake":
+                self.send(200, json.dumps(wake()))
             elif path == "/api/delete":
                 mutate(lambda notes: delete(notes, body["id"]))
                 self.send(200, "{}")
@@ -471,6 +525,8 @@ def cmd_build(args):
 
 def cmd_wait(args):
     deadline = time.time() + args.max_seconds
+    if os.environ.get("TMUX_PANE") and os.environ.get("TMUX"):
+        WAKE.write_text(json.dumps({"pane": os.environ["TMUX_PANE"], "socket": os.environ["TMUX"].split(",")[0]}))
     while time.time() < deadline:
         HEARTBEAT.touch()
         if pending(load()):
@@ -526,7 +582,7 @@ def cmd_list(args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", default=os.environ.get("STUDY_ROOT", "."), help="curriculum directory (default: $STUDY_ROOT or the current directory)")
-    p.add_argument("--state", default=os.environ.get("STUDY_STATE"), help="directory for your notes, journal and progress (default: $STUDY_STATE or ~/.study-tree/<curriculum>)")
+    p.add_argument("--state", default=os.environ.get("STUDY_STATE"), help="directory for your notes, journal and progress (default: $STUDY_STATE or ~/.tutor/<curriculum>)")
     p.add_argument("--port", type=int, default=int(os.environ.get("STUDY_PORT", DEFAULT_PORT)))
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("serve").set_defaults(fn=cmd_serve)

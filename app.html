@@ -255,6 +255,31 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 .quiz-q .explain { margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--muted); }
 .quiz-result { font-weight: 650; }
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.8rem; margin: 0.8rem 0; }
+.say { font-weight: 600; }
+.say-ctl { display: inline-flex; align-items: center; gap: 0.2rem; margin-left: 0.3rem; vertical-align: middle; white-space: nowrap; }
+.say-ctl .romaji { color: var(--muted); font-style: italic; font-size: 0.85em; margin-right: 0.2rem; }
+.say-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.3rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--accent); cursor: pointer; font-size: 0.75rem; font-weight: 600; line-height: 1; user-select: none; }
+.say-btn:hover, .say-btn:focus-visible { border-color: var(--accent); outline: none; }
+.say-btn.mic { color: var(--accent-2); }
+.say-btn.live { background: var(--danger); border-color: var(--danger); color: var(--bg); animation: say-pulse 1s infinite; }
+@keyframes say-pulse { 50% { opacity: 0.55; } }
+.say-out { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-left: 0.4rem; font-size: 0.8rem; color: var(--muted); }
+.say-out.good > span:first-child { color: var(--ok); font-weight: 600; }
+.say-out.close > span:first-child { color: var(--gold); font-weight: 600; }
+.say-out.off > span:first-child { color: var(--danger); font-weight: 600; }
+.say-out .heard { color: var(--fg); }
+.say-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+.face .say-jp { display: block; font-size: 1.3em; margin-bottom: 0.4rem; }
+.face .say-ctl { margin: 0 0 0.4rem; }
+.face .say-out { display: flex; margin: 0 0 0.4rem; }
+#reader { position: fixed; left: 16px; bottom: 16px; z-index: 55; display: flex; gap: 0.3rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow); padding: 0.3rem; font-size: 0.85rem; }
+#reader button { border: 1px solid var(--border); background: var(--surface-2); color: var(--fg); border-radius: 999px; min-width: 2rem; height: 2rem; padding: 0 0.7rem; cursor: pointer; font: inherit; font-weight: 600; }
+#reader button:hover { border-color: var(--accent); color: var(--accent); }
+#reader button.main { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+#reader .rd-ctl[hidden], #reader [hidden] { display: none; }
+#reader .rd-pos { color: var(--muted); padding: 0 0.4rem; font-variant-numeric: tabular-nums; }
+.reading { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.reading-ja { background: color-mix(in srgb, var(--accent-2) 30%, transparent); border-radius: 3px; }
 .flip { display: block; width: 100%; perspective: 900px; min-height: 9rem; cursor: pointer; border: none; background: none; padding: 0; font: inherit; color: inherit; text-align: left; }
 .flip-inner { display: block; position: relative; width: 100%; height: 100%; min-height: 9rem; transition: transform 0.45s; transform-style: preserve-3d; }
 .flip.flipped .flip-inner { transform: rotateY(180deg); }
@@ -304,6 +329,7 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
       <a class="level-chip" href="/" id="level-chip" title="Level and XP"></a>
       <button class="btn" id="sound-toggle" type="button" title="Sound effects for quiz results"></button>
       <span class="status" id="claude-status" data-state="offline">Claude offline</span>
+      <button class="btn" type="button" id="claude-wake" hidden>Wake Claude</button>
     </div>
   </div>
 </header>
@@ -392,7 +418,284 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch {}
   }
 
-  const SOUND_KEY = "study-tree-sound";
+  const ICON_PLAY = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6 6 0 0 1 0 9" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+  const ICON_MIC = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let jaVoice = null;
+  function pickVoice() {
+    if (!window.speechSynthesis) return;
+    const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+    jaVoice = vs.find(v => /premium|enhanced|o-ren|kyoko/i.test(v.name)) || vs.find(v => v.localService) || vs[0] || null;
+  }
+  if (window.speechSynthesis) { pickVoice(); speechSynthesis.addEventListener("voiceschanged", pickVoice); }
+  let currentAudio = null;
+  function speakBrowser(text, rate) {
+    return new Promise(res => {
+      if (!window.speechSynthesis) return res(false);
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      if (jaVoice) u.voice = jaVoice;
+      u.rate = rate;
+      u.onend = u.onerror = () => res(true);
+      window._utt = u;
+      setTimeout(() => speechSynthesis.speak(u), 60);
+    });
+  }
+  function speak(text, rate) {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (!onServer) return speakBrowser(text, rate);
+    return new Promise(res => {
+      const a = new Audio("/api/tts?" + new URLSearchParams({ text, slow: rate < 0.8 ? "1" : "0" }));
+      currentAudio = a;
+      a.onended = () => res(true);
+      a.onerror = () => speakBrowser(text, rate).then(res);
+      a.play().catch(() => speakBrowser(text, rate).then(res));
+    });
+  }
+  const toHira = s => s.replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+  const normJa = s => toHira(String(s).normalize("NFKC").toLowerCase()).replace(/[\s\p{P}\p{S}ー〜~]/gu, "");
+  function similarity(a, b) {
+    a = [...normJa(a)]; b = [...normJa(b)];
+    if (!a.length || !b.length) return 0;
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return 1 - prev[b.length] / Math.max(a.length, b.length);
+  }
+  const KANA = "あa,いi,うu,えe,おo,かka,きki,くku,けke,こko,がga,ぎgi,ぐgu,げge,ごgo,さsa,しshi,すsu,せse,そso,ざza,じji,ずzu,ぜze,ぞzo,たta,ちchi,つtsu,てte,とto,だda,ぢji,づzu,でde,どdo,なna,にni,ぬnu,ねne,のno,はha,ひhi,ふfu,へhe,ほho,ばba,びbi,ぶbu,べbe,ぼbo,ぱpa,ぴpi,ぷpu,ぺpe,ぽpo,まma,みmi,むmu,めme,もmo,やya,ゆyu,よyo,らra,りri,るru,れre,ろro,わwa,をo,んn,ぁa,ぃi,ぅu,ぇe,ぉo,ゔvu";
+  const KANA_MAP = Object.fromEntries(KANA.split(",").map(p => [p[0], p.slice(1)]));
+  function kanaToRomaji(s) {
+    s = normJa(s);
+    let out = "";
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i], nx = s[i + 1];
+      if (ch === "っ") { const r = KANA_MAP[nx]; if (r) out += r[0] === "c" ? "t" : r[0]; continue; }
+      if (nx && "ゃゅょ".includes(nx) && KANA_MAP[ch]) {
+        const base = KANA_MAP[ch], y = { "ゃ": "a", "ゅ": "u", "ょ": "o" }[nx];
+        out += /^(shi|chi|ji)$/.test(base) ? base.slice(0, -1) + y : base.slice(0, -1) + "y" + y;
+        i++; continue;
+      }
+      out += KANA_MAP[ch] != null ? KANA_MAP[ch] : ch;
+    }
+    return out;
+  }
+  const normRomaji = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "").replace(/ou/g, "o").replace(/([aeiou])\1/g, "$1").replace(/m(?=[bmp])/g, "n");
+  const matchScore = (heard, target, romaji) => Math.max(similarity(heard, target), romaji && !/[\u4e00-\u9fff]/.test(heard) ? similarity(normRomaji(kanaToRomaji(heard)), normRomaji(romaji)) : 0);
+  let activeListen = null;
+  async function startRecorder() {
+    if (!navigator.mediaDevices || !window.MediaRecorder) return null;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream), chunks = [];
+      rec.ondataavailable = e => chunks.push(e.data);
+      const done = new Promise(res => { rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); res(new Blob(chunks, { type: rec.mimeType })); }; });
+      rec.start();
+      return { stop: () => { if (rec.state !== "inactive") rec.stop(); return done; } };
+    } catch { return null; }
+  }
+  function listen(target, romaji, ctl, out) {
+    if (activeListen) { activeListen(); return; }
+    ctl.classList.add("live");
+    out.hidden = false;
+    out.className = "say-out";
+    out.textContent = "Listening, say it now";
+    let recorder = null, recognizer = null, finished = false, heard = [];
+    const finish = async () => {
+      if (finished) return;
+      finished = true;
+      activeListen = null;
+      ctl.classList.remove("live");
+      try { recognizer && recognizer.stop(); } catch {}
+      const blob = recorder ? await recorder.stop() : null;
+      out.textContent = "";
+      if (heard.length) {
+        const best = heard.map(h => ({ h, s: matchScore(h, target, romaji) })).sort((x, y) => y.s - x.s)[0];
+        const pct = Math.round(best.s * 100);
+        out.classList.add(pct >= 85 ? "good" : pct >= 60 ? "close" : "off");
+        out.append(el("span", {}, `${pct >= 85 ? "Good" : pct >= 60 ? "Close" : "Try again"}: ${pct}%`), el("span", { class: "heard", lang: "ja" }, "Heard " + best.h));
+      } else if (Recognition) {
+        out.classList.add("off");
+        out.append(el("span", {}, "Did not catch that"));
+      }
+      if (blob && blob.size) {
+        const url = URL.createObjectURL(blob);
+        const mine = el("span", { class: "say-link", role: "button", tabindex: "0" }, "Hear yourself");
+        const both = el("span", { class: "say-link", role: "button", tabindex: "0" }, "Compare");
+        const playMine = () => new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); });
+        on(mine, () => playMine());
+        on(both, async () => {
+          await speak(target, 0.9);
+          await new Promise(res => setTimeout(res, 300));
+          playMine();
+        });
+        out.append(mine, both);
+      }
+      if (!out.childNodes.length) out.append(el("span", {}, "This browser cannot use the microphone here. Try Chrome or Safari."));
+    };
+    activeListen = finish;
+    startRecorder().then(r => {
+      recorder = r;
+      if (finished && r) r.stop();
+      if (!Recognition) setTimeout(finish, 4000);
+    });
+    if (Recognition) {
+      try {
+        recognizer = new Recognition();
+        recognizer.lang = "ja-JP";
+        recognizer.interimResults = false;
+        recognizer.maxAlternatives = 5;
+        recognizer.onresult = e => { for (const r of e.results) for (const alt of r) heard.push(alt.transcript); };
+        recognizer.onerror = () => {};
+        recognizer.onend = () => setTimeout(finish, 150);
+        recognizer.start();
+      } catch { setTimeout(finish, 4000); }
+    }
+    setTimeout(finish, 9000);
+  }
+  function on(node, fn) {
+    const go = e => { e.preventDefault(); e.stopPropagation(); fn(); };
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") go(e); });
+    node.addEventListener("pointerdown", e => e.stopPropagation());
+  }
+  function enhanceSay(root) {
+    if (!root) return;
+    root.querySelectorAll(".say").forEach(s => {
+      if (s.dataset.sayReady) return;
+      s.dataset.sayReady = "1";
+      const text = s.dataset.say || s.textContent.trim();
+      const tip = [s.dataset.romaji, s.dataset.en].filter(Boolean).join(": ");
+      if (tip) s.title = tip;
+      const btn = (cls, label, html, fn) => { const b = el("span", { class: "say-btn " + cls, role: "button", tabindex: "0", "aria-label": label, title: label }); b.innerHTML = html; on(b, fn); return b; };
+      const out = el("span", { class: "say-out", hidden: "" });
+      const play = btn("play", "Play", ICON_PLAY, () => speak(text, 0.9).then(ok => { if (!ok) { out.hidden = false; out.textContent = "No speech output: the server could not run say and this browser has no Japanese voice."; } }));
+      const slow = btn("slow", "Play slowly", "½", () => speak(text, 0.55));
+      const mic = btn("mic", "Say it", ICON_MIC, () => listen(text, s.dataset.romaji, mic, out));
+      const ctl = el("span", { class: "say-ctl no-gloss" }, play, slow, mic);
+      if (s.dataset.romaji && !s.closest(".face")) ctl.prepend(el("span", { class: "romaji" }, s.dataset.romaji));
+      s.after(ctl, out);
+    });
+  }
+
+  function readerSegments() {
+    const skip = ".say-ctl, .say-out, .c-add, button, .thread, .katex-mathml, figure img, script, style";
+    const leaves = [...doc.querySelectorAll(".c-block")].filter(b => !b.closest(".thread") && !b.querySelector(".c-block"));
+    const head = [document.querySelector("main h1"), document.querySelector("main .lede")].filter(Boolean);
+    const out = [];
+    for (const block of [...head, ...leaves]) {
+      const segs = [];
+      const push = (lang, text, node) => {
+        text = text.replace(/\s+/g, " ");
+        const last = segs[segs.length - 1];
+        if (lang === "en" && last && last.lang === "en") last.text += text;
+        else if (text.trim()) segs.push({ lang, text, node });
+      };
+      const walk = n => {
+        if (n.nodeType === 3) return push("en", n.textContent);
+        if (n.nodeType !== 1 || n.matches(skip)) return;
+        if (n.matches(".say")) return push("ja", n.dataset.say || n.textContent.trim(), n);
+        const blockish = /^(TD|TH|LI|P|DIV|H2|H3|FIGCAPTION)$/.test(n.tagName);
+        [...n.childNodes].forEach(walk);
+        if (blockish) push("en", ". ");
+      };
+      walk(block);
+      segs.forEach(sg => { if (sg.lang === "en") sg.text = sg.text.replace(/(\s*\.\s*){2,}/g, ". ").replace(/^[\s.,;:]+/, "").trim(); });
+      const kept = segs.filter(sg => sg.lang === "ja" || /[\p{L}\p{N}]/u.test(sg.text));
+      if (kept.length) out.push({ block, segs: kept });
+    }
+    return out;
+  }
+  function setupReader() {
+    if (!onServer || !doc) return;
+    let items = [], bi = 0, si = 0, playing = false, audio = null, token = 0;
+    const cache = new Map();
+    const urlOf = sg => "/api/tts?" + new URLSearchParams({ text: sg.text, lang: sg.lang, slow: "0" });
+    const fetchSeg = sg => { const u = urlOf(sg); if (!cache.has(u)) { const a = new Audio(u); a.preload = "auto"; cache.set(u, a); } return cache.get(u); };
+    const pos = el("span", { class: "rd-pos" });
+    const btn = (label, title, fn, cls) => el("button", { type: "button", title, "aria-label": title, class: cls, onclick: fn }, label);
+    const start = btn("Read aloud", "Read this page aloud, from the block at the top of the screen", () => begin(), "main");
+    const pause = btn("Pause", "Pause or resume", () => toggle(), "main rd-ctl");
+    const prev = btn("‹", "Previous block", () => jump(bi - 1), "rd-ctl");
+    const next = btn("›", "Next block", () => jump(bi + 1), "rd-ctl");
+    const stop = btn("Stop", "Stop reading", () => end(), "rd-ctl");
+    const ctls = [prev, pause, next, stop, pos];
+    ctls.forEach(c => c.hidden = true);
+    document.body.append(el("div", { id: "reader" }, start, ...ctls));
+    const mark = () => {
+      document.querySelectorAll(".reading, .reading-ja").forEach(n => n.classList.remove("reading", "reading-ja"));
+      const it = items[bi];
+      if (!it) return;
+      it.block.classList.add("reading");
+      const sg = it.segs[si];
+      if (sg && sg.node) sg.node.classList.add("reading-ja");
+      pos.textContent = `${bi + 1} / ${items.length}`;
+    };
+    const prefetch = () => {
+      let b = bi, s2 = si;
+      for (let k = 0; k < 3; k++) {
+        s2++;
+        if (!items[b] || s2 >= items[b].segs.length) { b++; s2 = 0; }
+        if (!items[b]) return;
+        fetchSeg(items[b].segs[s2]);
+      }
+    };
+    const playCurrent = () => {
+      const my = ++token;
+      const it = items[bi];
+      if (!it) return end();
+      const sg = it.segs[si];
+      mark();
+      if (si === 0) it.block.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (audio) audio.pause();
+      audio = fetchSeg(sg);
+      audio.currentTime = 0;
+      audio.onended = () => { if (my !== token) return; cache.delete(urlOf(sg)); advance(); };
+      audio.onerror = () => { if (my !== token) return; advance(); };
+      audio.play().catch(() => { if (my === token) { playing = false; pause.textContent = "Resume"; } });
+      prefetch();
+    };
+    const advance = () => {
+      si++;
+      if (si >= items[bi].segs.length) { bi++; si = 0; }
+      if (bi >= items.length) return end();
+      if (playing) setTimeout(() => playing && playCurrent(), si === 0 ? 350 : 120);
+    };
+    const begin = () => {
+      items = readerSegments();
+      if (!items.length) return;
+      const top = items.findIndex(it => it.block.getBoundingClientRect().bottom > 80);
+      bi = window.scrollY < 200 || top < 0 ? 0 : top;
+      si = 0; playing = true;
+      start.hidden = true; ctls.forEach(c => c.hidden = false); pause.textContent = "Pause";
+      playCurrent();
+    };
+    const toggle = () => {
+      if (!audio) return;
+      if (playing) { playing = false; audio.pause(); pause.textContent = "Resume"; }
+      else { playing = true; pause.textContent = "Pause"; audio.play().catch(() => playCurrent()); }
+    };
+    const jump = i => {
+      if (i < 0 || i >= items.length) return;
+      bi = i; si = 0; playing = true; pause.textContent = "Pause";
+      playCurrent();
+    };
+    function end() {
+      token++; playing = false;
+      if (audio) audio.pause();
+      audio = null; cache.clear();
+      document.querySelectorAll(".reading, .reading-ja").forEach(n => n.classList.remove("reading", "reading-ja"));
+      start.hidden = false; ctls.forEach(c => c.hidden = true);
+    }
+    document.addEventListener("keydown", e => {
+      if (start.hidden && e.key === "Escape") end();
+    });
+  }
+
+  const SOUND_KEY = "tutor-sound";
   const soundOn = () => { try { return localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; } };
   let audioCtx = null;
   function tone(t, freq, dur, opts = {}) {
@@ -516,7 +819,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function glossarize(root, inThread) {
     if (!root) return;
-    const skip = "pre, code, a, h1, h2, h3, button, textarea, .no-gloss, .g-term, .toc, .katex, .math, .flip, .quiz-q, svg" + (inThread ? "" : ", .thread");
+    const skip = "pre, code, a, h1, h2, h3, button, textarea, .no-gloss, .g-term, .toc, .katex, .math, .flip, .quiz-q, svg, .say, .say-ctl, .say-out" + (inThread ? "" : ", .thread");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: n => n.parentElement && n.parentElement.closest(skip) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
     });
@@ -716,9 +1019,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const b = el("button", { class: "flip", type: "button", "aria-label": onClick ? "Open card" : "Flip card" },
       el("span", { class: "flip-inner" },
         el("span", { class: "face front" }, el("small", {}, big ? NODE[c.topic].title : "Front"), el("span", { class: "txt" }, decode(c.front))),
-        el("span", { class: "face back" }, el("small", {}, "Back"), el("span", { class: "txt" }, decode(c.back)))));
+        el("span", { class: "face back" }, el("small", {}, "Back"), c.say ? el("span", { class: "say say-jp", lang: "ja" }, c.say) : null, el("span", { class: "txt" }, decode(c.back)))));
     b.addEventListener("click", onClick ? () => onClick(b) : () => b.classList.toggle("flipped"));
     renderMath(b);
+    enhanceSay(b);
     return b;
   }
 
@@ -1419,7 +1723,18 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (listening) { state = "listening"; label = "Claude listening"; }
     statusEl.dataset.state = state;
     statusEl.textContent = label;
+    wakeBtn.hidden = !(online && onServer && state === "offline");
   }
+  const wakeBtn = document.getElementById("claude-wake");
+  wakeBtn.addEventListener("click", async () => {
+    wakeBtn.disabled = true;
+    wakeBtn.textContent = "Waking...";
+    try {
+      const r = await api("/api/wake", {});
+      showToast(r.ok ? "Asked Claude to start listening again." : "Could not wake Claude: " + r.detail);
+    } catch { showToast("Could not reach the server."); }
+    setTimeout(() => { wakeBtn.disabled = false; wakeBtn.textContent = "Wake Claude"; }, 60000);
+  });
   let filter = "waiting";
   function renderNotesPanel() {
     const box = document.getElementById("n-results");
@@ -1527,6 +1842,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMath(main);
     highlightCode(main);
     glossarize(doc);
+    enhanceSay(doc);
+    setupReader();
     blocks.forEach(updateBadge);
     if (onServer && !progress.visited[TOPIC]) postProgress({ kind: "visit", topic: TOPIC }).catch(() => {});
     const hashId = location.hash.slice(1);
