@@ -19,7 +19,9 @@ import urllib.parse
 import uuid
 
 PLATFORM = pathlib.Path(__file__).resolve().parent
-APP = PLATFORM / "app.html"
+DIST = PLATFORM / "dist"
+APP = DIST / "index.html"
+ASSET_TYPES = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".map": "application/json"}
 DEFAULT_PORT = 8765
 TYPES = {"question", "request", "comment"}
 INTERVALS = [1, 2, 4, 8, 16, 32]
@@ -200,23 +202,22 @@ def render(page, topic=None):
         "journal": journal_text(topic) if topic else None,
         "version": content_version(),
         "platform": platform_info(),
+        "fragment": topic_fragment(topic) if page == "topic" else None,
     }
-    blob = json.dumps(boot, ensure_ascii=False).replace("</", "<\\/")
+    blob = json.dumps(boot, ensure_ascii=False).replace("<", "\\u003c")
     if page == "topic":
-        content = f'<article id="doc">\n{topic_fragment(topic)}\n</article>'
         title = nodes[topic]["title"]
     elif page == "cards":
-        content, title = "", "Flip card review"
+        title = "Flip card review"
     elif page == "review":
-        content, title = "", "Mixed review"
+        title = "Mixed review"
     else:
-        content, title = "", cur.get("title", "Tutor")
-    if page != "topic":
-        title = f"{title}: {cur.get('title', 'Tutor')}" if page in ("cards", "review") else title
+        title = cur.get("title", "Tutor")
+    if page in ("cards", "review"):
+        title = f"{title}: {cur.get('title', 'Tutor')}"
     return (APP.read_text()
             .replace("__TITLE__", html.escape(title))
-            .replace("__BOOT_JSON__", blob)
-            .replace("__CONTENT__", content))
+            .replace("__BOOT_JSON__", blob))
 
 
 def journal_text(topic):
@@ -323,6 +324,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send(200, render(path[1:]), "text/html; charset=utf-8")
         elif path.startswith("/t/") and path[3:].strip("/") in ids:
             self.send(200, render("topic", path[3:].strip("/")), "text/html; charset=utf-8")
+        elif path.startswith("/assets/"):
+            target = (DIST / path[1:]).resolve()
+            if (DIST / "assets") in target.parents and target.is_file():
+                ctype = ASSET_TYPES.get(target.suffix) or mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+                self.send(200, target.read_bytes(), ctype)
+            else:
+                self.send(404, '{"error":"not found"}')
         elif path.startswith("/files/"):
             target = (ROOT / path[len("/files/"):]).resolve()
             if ROOT in target.parents and target.is_file() and target.suffix in SERVABLE:

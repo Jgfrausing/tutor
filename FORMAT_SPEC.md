@@ -22,7 +22,7 @@ The platform serves any curriculum folder that holds a `curriculum.json`. The fo
 }
 ```
 
-- Kind fields: `label`, `xp`, `color` (a palette token from `app.html`: `accent`, `accent-2`, `ok`, `gold`, `lab`, `danger`, `question`, `comment`), optional `shape` (`rounded`, `sharp`, `hex`), `emphasis` (thicker border), `legend: false` (hide from the tree legend) and `side_quest` (optional node that opens when any node in its `attached_to` list opens).
+- Kind fields: `label`, `xp`, `color` (a palette token from `web/src/styles.css`: `accent`, `accent-2`, `ok`, `gold`, `lab`, `danger`, `question`, `comment`), optional `shape` (`rounded`, `sharp`, `hex`), `emphasis` (thicker border), `legend: false` (hide from the tree legend) and `side_quest` (optional node that opens when any node in its `attached_to` list opens).
 - Badge rule types: `passed` (`node`), `all_passed` (`nodes`), `count_passed` (`kind` optional, `n`), `all_of_kind` (`kind`), `cards_reviewed` (`n`), `perfect_quiz` (`kind` optional).
 - A node can carry `paper: {authors, year, venue, title, url, local}`; the lesson page then shows a paper box. `local` is a path inside the curriculum folder, served under `/files/`.
 

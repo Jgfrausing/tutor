@@ -1,0 +1,20 @@
+import type { Boot, CNode, Kind } from "../types";
+
+export const BOOT: Boot = JSON.parse(document.getElementById("boot")?.textContent || "{}");
+export const PAGE = BOOT.page;
+export const TOPIC = BOOT.topic || "";
+export const NODES: CNode[] = BOOT.curriculum.nodes;
+export const NODE: Record<string, CNode> = Object.fromEntries(NODES.map(n => [n.id, n]));
+export const CFG = BOOT.curriculum.config || {};
+export const PLATFORM = BOOT.platform;
+export const KINDS: Record<string, Kind> = CFG.kinds || {};
+export const kindOf = (k: string): Kind => KINDS[k] || { label: k, xp: 0, color: "accent" };
+export const xpOf = (k: string) => kindOf(k).xp || 0;
+export const colorOf = (k: string) => `var(--${kindOf(k).color || "accent"})`;
+export const isSide = (n: CNode) => !!kindOf(n.kind).side_quest;
+export const XP_PER_LEVEL = CFG.xp_per_level || 250;
+export const PASS_MARK = CFG.pass_mark || 0.7;
+export const PASS_PCT = Math.round(PASS_MARK * 100) + "%";
+export const RANKS = CFG.ranks && CFG.ranks.length ? CFG.ranks : ["Learner"];
+export const onServer = location.protocol.startsWith("http");
+export const TYPE_LABEL: Record<string, string> = { question: "Question", request: "Edit request", comment: "Comment" };

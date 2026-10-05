@@ -22,11 +22,24 @@ python3 server.py --root ~/notes/market-simulation --state ~/notes/study-state/m
 | `reply <id> <text or ->` | Posts an answer as Claude and marks the thread answered |
 | `list [--open]` | Prints every thread |
 
+## Build the web UI
+
+You only need this after changing `web/`. It needs Node and npm.
+
+```sh
+cd web
+npm install
+npm run build
+```
+
+`npm run build` type-checks with `tsc` and writes the bundle to `dist/` in the repository root. Commit `dist/` with the source change. KaTeX and highlight.js load from cdnjs through script tags in `web/index.html`, not from npm.
+
 ## Files
 
 | File | What it holds |
 |---|---|
-| `app.html` | The page shell: tree, lessons, quiz, cards, glossary, notes. It reads kinds, ranks, badges and strings from the curriculum's `config` |
+| `web/` | The web UI: React 18 and TypeScript, built with Vite. Components are in `web/src/components/` (tree, lesson, quiz, cards, glossary, notes threads, journal, read-aloud player), shared logic in `web/src/lib/` and the styles in `web/src/styles.css`. It reads kinds, ranks, badges and strings from the curriculum's `config` |
+| `dist/` | The built UI, committed so that running the server needs only Python. `server.py` fills `dist/index.html` with the page's boot JSON (the lesson HTML travels in its `fragment` field) and serves `dist/assets/` under `/assets/` |
 | `server.py` | HTTP server and CLI. It keeps state in the `--state` folder: `notes.json`, `notes/<id>.md`, `journal/<id>.md`, `progress.json`, the log and the listener heartbeat |
 | `FORMAT_SPEC.md` | The contract for a curriculum folder |
 
