@@ -38,13 +38,22 @@ export function glossarize(root: HTMLElement | null, inThread: boolean) {
   });
   const nodes: Text[] = [];
   while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  const heads = inThread ? [] : [...root.querySelectorAll("h2")];
+  let section = 0;
+  let seen = new Set<number>();
   for (const node of nodes) {
+    while (section < heads.length && heads[section].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      section++;
+      seen = new Set();
+    }
     const text = node.nodeValue || "";
     termRe.lastIndex = 0;
     let m: RegExpExecArray | null, last = 0, frag: DocumentFragment | null = null;
     while ((m = termRe.exec(text))) {
       const entry = variantMap.get(m[1].toLowerCase());
       if (!entry || (entry.cs && m[1] !== entry.v)) { termRe.lastIndex = m.index + 1; continue; }
+      if (!inThread && seen.has(entry.idx)) continue;
+      seen.add(entry.idx);
       frag = frag || document.createDocumentFragment();
       frag.append(text.slice(last, m.index));
       const span = document.createElement("span");
