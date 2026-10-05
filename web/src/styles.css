@@ -55,7 +55,7 @@ button.status.wake { font: inherit; font-size: 0.8rem; background: none; cursor:
 button.status.wake:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .brand:hover { color: var(--accent); }
 .search { flex: 1 1 9rem; position: relative; }
-.search input { width: 100%; padding: 0.45rem 0.7rem 0.45rem 2rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 0.95rem; }
+.search input { width: 100%; padding: 0.45rem 2rem 0.45rem 2rem; text-overflow: ellipsis; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: inherit; font-size: 0.95rem; }
 .search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .search svg { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); }
 .search kbd { position: absolute; right: 0.55rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 0.3rem; }
