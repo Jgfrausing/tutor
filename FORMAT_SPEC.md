@@ -64,7 +64,7 @@ Allowed elements: `h2`, `h3`, `p`, `ul`, `ol`, `li`, `table` with `thead`/`tbody
 ]}
 ```
 
-`answer` is the zero-based index into `choices` as written. The page shows the choices in a shuffled order that stays the same for each question, so the position of the right answer in the file does not matter, and no choice may refer to another by position ("both of the above"). Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible.
+`answer` is the zero-based index into `choices` as written. The page shows the choices in a shuffled order that stays the same for each question, so the position of the right answer in the file does not matter, and no choice may refer to another by position ("both of the above"). Mix recall with application questions ("the algo lifts 5 MW, what does model X predict happens next"). Make wrong choices plausible, and as long and as specific as the right one: if the right answer is usually the longest, a reader passes by picking the longest.
 
 
 ## Cards file
@@ -93,7 +93,7 @@ Do not repeat terms that already exist in the curriculum's `glossary_files` or i
 cd <curriculum folder>
 for f in quizzes/<id>.json cards/<id>.json terms/<id>.json; do python3 -m json.tool "$f" >/dev/null || echo "BAD $f"; done
 grep -n '[—–]' topics/<id>.html quizzes/<id>.json cards/<id>.json terms/<id>.json
-python3 ~/code/tutor/server.py --root . build
+python3 <tutor>/server.py --root . --state <state folder> build
 ```
 
 `build` assigns stable `data-cid` block ids (notes attach to them), checks the JSON and lists missing files.

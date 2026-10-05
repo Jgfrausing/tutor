@@ -42,6 +42,16 @@ python3 -m unittest discover tests
 
 The tests start the server on a free port against a small temporary curriculum and state folder. They cover the pages, `/files/` and path traversal, quiz XP, card intervals and first-review dates, bad input, notes and `build`. They need no network and touch nothing outside the temporary folder.
 
+## Making a curriculum
+
+`skills/new-curriculum` is a Claude Code skill that builds a whole curriculum: it asks about the subject, reader and size, shows you the tree for approval, writes `curriculum.json`, `AUDIENCE.md` and `README.md`, has writer agents produce every lesson, quiz, card and terms file in parallel, and runs `build` until it is clean. It does not start a server. Link it into your skills folder once:
+
+```sh
+ln -s "$PWD/skills/new-curriculum" ~/.claude/skills/new-curriculum
+```
+
+Then ask Claude Code for "a new curriculum on <subject>".
+
 ## Files
 
 | File | What it holds |
