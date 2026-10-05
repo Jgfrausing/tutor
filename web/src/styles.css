@@ -261,6 +261,8 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 .face .say-ctl { margin: 0 0 0.4rem; }
 .face .say-out { display: flex; margin: 0 0 0.4rem; }
 #reader { position: fixed; right: 16px; bottom: 16px; z-index: 55; display: flex; gap: 0.3rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow); padding: 0.3rem; font-size: 0.85rem; }
+body:has(.panel:not([hidden])) #reader { right: calc(min(430px, 100vw) + 16px); }
+@media (max-width: 760px) { body:has(.panel:not([hidden])) #reader { display: none; } }
 #reader button { border: 1px solid var(--border); background: var(--surface-2); color: var(--fg); border-radius: 999px; min-width: 2rem; height: 2rem; padding: 0 0.7rem; cursor: pointer; font: inherit; font-weight: 600; }
 #reader button:hover { border-color: var(--accent); color: var(--accent); }
 #reader button.main { background: var(--accent); border-color: var(--accent); color: var(--bg); }
