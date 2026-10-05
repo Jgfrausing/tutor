@@ -13,9 +13,9 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent, AskUserQuestion
 
 # new-curriculum
 
-A tutor curriculum is a folder that `server.py` serves: `curriculum.json`, `AUDIENCE.md`, and per node `topics/<id>.html`, `quizzes/<id>.json`, `cards/<id>.json` and `terms/<id>.json`. `FORMAT_SPEC.md` in the tutor repo is the contract for every one of those files. Read it before anything else.
+A tutor curriculum is a folder that the `tutor` binary serves: `curriculum.json`, `AUDIENCE.md`, and per node `topics/<id>.html`, `quizzes/<id>.json`, `cards/<id>.json` and `terms/<id>.json`. `FORMAT_SPEC.md` in the tutor repo is the contract for every one of those files. Read it before anything else.
 
-The tutor repo is two directories above this skill's real path (`skills/new-curriculum/` inside the repo). Resolve symlinks to find it, and call it `TUTOR` below. `TUTOR/server.py` and `TUTOR/FORMAT_SPEC.md` must exist; stop and say so if they do not.
+The tutor repo is two directories above this skill's real path (`skills/new-curriculum/` inside the repo). Resolve symlinks to find it, and call it `TUTOR` below. `TUTOR/FORMAT_SPEC.md` must exist; stop and say so if it does not. The server is the binary `TUTOR/target/release/tutor`. If it is missing, build it with `cargo build --release` in `TUTOR`, and stop and say so if that fails.
 
 This skill writes the whole curriculum in one run. It never starts a server.
 
@@ -80,14 +80,14 @@ python3 -c "import json,glob; r=t=0
 for f in glob.glob('quizzes/*.json'):
   for q in json.load(open(f))['questions']: t+=1; r+=max(range(len(q['choices'])),key=lambda i:len(q['choices'][i]))==q['answer']
 print('longest choice is right in',r,'of',t)"
-python3 "$TUTOR/server.py" --root . --state <state folder> build
+"$TUTOR/target/release/tutor" --root . --state <state folder> build
 ```
 
 If the longest choice is right in more than about 30% of questions, a reader can pass by picking the longest. Rewrite those questions' choices to even out length and detail before going on.
 
 Collect the terms each writer reported as "left to another category" and check that each one is defined in some terms file. Add any that are missing to the terms file of the node that teaches them most, in the right category; if that node already has 8 terms, use the next node that teaches it.
 
-`build` assigns block ids and lists problems; run it again until it lists none. Always pass `--state`: without it, `server.py` creates a stray state folder under `~/.tutor`.
+`build` assigns block ids and lists problems; run it again until it lists none. Always pass `--state`: without it, `tutor` creates a stray state folder under `~/.tutor`.
 
 For a spoken language other than Japanese, collect every `<em lang="..">word</em> (RESPELLING, ...)` pair across the lessons and cards, and make each word use one respelling everywhere:
 
@@ -115,7 +115,7 @@ Tell the user:
 - the command to run, which you do not run yourself:
 
 ```sh
-python3 <TUTOR>/server.py --root <folder> --state <state folder> --port <free port> serve
+<TUTOR>/target/release/tutor --root <folder> --state <state folder> --port <free port> serve
 ```
 
 ## Special material
