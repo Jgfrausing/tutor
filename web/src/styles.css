@@ -173,7 +173,7 @@ textarea { width: 100%; min-height: 4.5rem; resize: vertical; padding: 0.5rem 0.
 textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .reply-box { margin: 0.4rem 0 0.2rem 1.1rem; display: grid; gap: 0.4rem; }
 .reply-box textarea { min-height: 3rem; }
-.thread-foot { margin: 0.2rem 0 0.4rem 1.1rem; }
+.thread-foot { margin: 0.2rem 0 0.4rem 1.1rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
 .form-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
 .seg button { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.7rem; border: none; background: var(--surface); color: var(--muted); cursor: pointer; }
@@ -303,5 +303,6 @@ body:has(.panel:not([hidden])) #reader { right: calc(min(430px, 100vw) + 16px); 
   main:not(.wide) { padding-right: 44px; }
   .c-add { left: auto; right: -36px; opacity: 0.35; }
   .search kbd { display: none; }
+  header.top { position: static; }
 }
 .say-host, .thread-host { display: contents; }
