@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "../context";
-import { BOOT, NODE, NODES, PAGE, TOPIC, isSide, onServer, xpOf } from "../lib/boot";
+import { BOOT, NODE, NODES, TOPIC, isSide, onServer, xpOf } from "../lib/boot";
 import { highlightCode, linkFigures, renderMath } from "../lib/dom";
 import { glossarize } from "../lib/glossary";
 import { nodeState, passed } from "../lib/progress";
@@ -21,17 +21,6 @@ interface SayHost {
   text: string;
   romaji?: string;
   showRomaji: boolean;
-}
-
-function useMediaQuery(q: string) {
-  const [match, setMatch] = useState(() => matchMedia(q).matches);
-  useEffect(() => {
-    const mq = matchMedia(q);
-    const on = () => setMatch(mq.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, [q]);
-  return match;
 }
 
 function setupBlocks(doc: HTMLElement): Block[] {
@@ -111,8 +100,6 @@ export function LessonPage() {
   const [sideEl, setSideEl] = useState<HTMLElement | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [sayHosts, setSayHosts] = useState<SayHost[]>([]);
-  const wide = useMediaQuery("(min-width: 1260px)");
-  const sideMode = PAGE === "topic" && wide;
 
   const { html, toc } = useMemo(() => {
     const raw = BOOT.fragment || "";
@@ -175,7 +162,7 @@ export function LessonPage() {
 
   return (
     <>
-      <main id="main" className="with-side" ref={setMainEl}>
+      <main id="main" ref={setMainEl}>
         <div className="crumbs"><a href="/">{BOOT.curriculum.title}</a>/<KindChip kind={n.kind} /><span>{status}</span></div>
         <h1><MathText text={n.title} /></h1>
         <MathText as="p" className="lede" text={n.summary} />
@@ -206,7 +193,7 @@ export function LessonPage() {
         </div>
         <div id="side" aria-label="Comments and questions" ref={setSideEl} />
       </main>
-      <LessonThreads ref={threadsRef} blocks={blocks} sideEl={sideEl} mainEl={mainEl} sideMode={sideMode} />
+      <LessonThreads ref={threadsRef} blocks={blocks} sideEl={sideEl} mainEl={mainEl} sideMode={false} />
       {sayHosts.map((s, i) => createPortal(<SayControls text={s.text} romaji={s.romaji} showRomaji={s.showRomaji} />, s.host, "say" + i))}
       {onServer ? <Reader docRef={docRef} /> : null}
     </>

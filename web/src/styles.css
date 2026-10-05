@@ -138,7 +138,6 @@ tr:hover td > .c-add.inline, td > .c-add.inline.has-notes { opacity: 1; }
 .c-block.linked { background: var(--flash); border-radius: 6px; }
 #side { display: none; }
 @media (min-width: 1260px) {
-  main.with-side { position: relative; margin-left: max(16px, calc((100vw - 70rem) / 2)); margin-right: auto; }
   #side { display: block; position: absolute; top: 0; left: calc(100% + 2rem); width: 22rem; }
   #side .thread { position: absolute; left: 0; right: 0; margin: 0; max-height: 75vh; overflow: auto; transition: top 0.15s; }
   #side .thread:not(.active) .form { display: none; }
