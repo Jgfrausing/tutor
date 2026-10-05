@@ -96,8 +96,6 @@ export function LessonPage() {
   const docRef = useRef<HTMLElement>(null);
   const journalRef = useRef<HTMLHeadingElement>(null);
   const threadsRef = useRef<ThreadsApi>(null);
-  const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
-  const [sideEl, setSideEl] = useState<HTMLElement | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [sayHosts, setSayHosts] = useState<SayHost[]>([]);
 
@@ -162,7 +160,7 @@ export function LessonPage() {
 
   return (
     <>
-      <main id="main" ref={setMainEl}>
+      <main id="main">
         <div className="crumbs"><a href="/">{BOOT.curriculum.title}</a>/<KindChip kind={n.kind} /><span>{status}</span></div>
         <h1><MathText text={n.title} /></h1>
         <MathText as="p" className="lede" text={n.summary} />
@@ -191,9 +189,8 @@ export function LessonPage() {
             </>
           ) : null}
         </div>
-        <div id="side" aria-label="Comments and questions" ref={setSideEl} />
       </main>
-      <LessonThreads ref={threadsRef} blocks={blocks} sideEl={sideEl} mainEl={mainEl} sideMode={false} />
+      <LessonThreads ref={threadsRef} blocks={blocks} />
       {sayHosts.map((s, i) => createPortal(<SayControls text={s.text} romaji={s.romaji} showRomaji={s.showRomaji} />, s.host, "say" + i))}
       {onServer ? <Reader docRef={docRef} /> : null}
     </>

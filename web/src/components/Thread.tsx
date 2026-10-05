@@ -85,13 +85,11 @@ export const excerptOf = (b: Block) => b.text.length > 110 ? b.text.slice(0, 107
 interface Props {
   block: Block;
   visible: boolean;
-  active: boolean;
   after: HTMLElement | null;
   onClose(): void;
-  relayout(): void;
 }
 
-export function Thread({ block, visible, active, after, onClose, relayout }: Props) {
+export function Thread({ block, visible, after, onClose }: Props) {
   const { notes } = useApp();
   const ref = useRef<HTMLDivElement>(null);
   const [openReplies, setOpenReplies] = useState<Set<string>>(() => new Set());
@@ -105,7 +103,6 @@ export function Thread({ block, visible, active, after, onClose, relayout }: Pro
   useLayoutEffect(() => {
     const t = ref.current;
     if (t && after && after.nextSibling !== t) after.after(t);
-    relayout();
   });
   const setReply = (id: string, on: boolean) => setOpenReplies(s => {
     const next = new Set(s);
@@ -113,7 +110,7 @@ export function Thread({ block, visible, active, after, onClose, relayout }: Pro
     return next;
   });
   return (
-    <div className={"thread" + (active ? " active" : "")} hidden={!visible} data-bid={block.id} ref={ref}
+    <div className="thread" hidden={!visible} data-bid={block.id} ref={ref}
       onMouseEnter={() => block.el.classList.add("linked")} onMouseLeave={() => block.el.classList.remove("linked")}>
       <div className="thread-list">
         {roots.map(root => (

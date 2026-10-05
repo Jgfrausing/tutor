@@ -1,14 +1,9 @@
-import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, Fragment, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "../context";
 import { rootsFor, threadOpen } from "../lib/notes";
 import type { Block, Note } from "../types";
 import { Thread } from "./Thread";
-
-interface ThreadState {
-  visible: boolean;
-  active: boolean;
-}
 
 export interface ThreadsApi {
   toggle(bid: string, force?: boolean): void;
@@ -33,103 +28,32 @@ function AddButton({ block, notes, onToggle }: { block: Block; notes: Note[]; on
   );
 }
 
-interface Props {
-  blocks: Block[];
-  sideEl: HTMLElement | null;
-  mainEl: HTMLElement | null;
-  sideMode: boolean;
-}
-
-export const LessonThreads = forwardRef<ThreadsApi, Props>(function LessonThreads({ blocks, sideEl, mainEl, sideMode }, ref) {
-  const { notes, listening } = useApp();
-  const [threads, setThreads] = useState<Record<string, ThreadState>>({});
-  const threadsRef = useRef(threads);
-  threadsRef.current = threads;
+export const LessonThreads = forwardRef<ThreadsApi, { blocks: Block[] }>(function LessonThreads({ blocks }, ref) {
+  const { notes } = useApp();
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const openRef = useRef(open);
+  openRef.current = open;
   const notesRef = useRef(notes);
   notesRef.current = notes;
-  const sideRef = useRef(sideMode);
-  sideRef.current = sideMode;
-  const blockMap = useRef(new Map<string, Block>());
-  blockMap.current = new Map(blocks.map(b => [b.id, b]));
   const rows = useRef(new Map<string, HTMLTableRowElement>());
-  const sigs = useRef(new Map<string, string>());
   const pendingFocus = useRef<string | null>(null);
 
-  const layoutSide = useCallback(() => {
-    if (!sideRef.current || !sideEl || !mainEl) return;
-    const base = mainEl.getBoundingClientRect().top;
-    const items = [...sideEl.children]
-      .filter((t): t is HTMLElement => t instanceof HTMLElement && t.classList.contains("thread") && !t.hidden)
-      .map(t => {
-        const b = blockMap.current.get(t.dataset.bid || "");
-        return { t, top: (b ? b.el.getBoundingClientRect().top : 0) - base };
-      })
-      .sort((a, b) => a.top - b.top);
-    let floor = 0;
-    for (const it of items) {
-      const top = Math.max(it.top, floor);
-      it.t.style.top = top + "px";
-      floor = top + it.t.offsetHeight + 12;
-    }
-  }, [sideEl, mainEl]);
-
-  const close = (bid: string) => {
-    const cur = threadsRef.current[bid];
-    if (!cur) return;
-    const keep = sideRef.current && rootsFor(notesRef.current, bid).length > 0;
-    setThreads(s => ({ ...s, [bid]: { ...cur, active: false, visible: keep ? cur.visible : false } }));
-  };
+  const close = (bid: string) => setOpen(s => ({ ...s, [bid]: false }));
 
   const toggle = (bid: string, force?: boolean) => {
-    const cur = threadsRef.current[bid] || { visible: false, active: false };
-    const side = sideRef.current;
-    const open = force || !cur.visible || (side && !cur.active);
-    if (!open) { close(bid); return; }
-    if (side || !rootsFor(notesRef.current, bid).length) pendingFocus.current = bid;
-    setThreads(s => ({ ...s, [bid]: { visible: true, active: true } }));
+    if (!force && openRef.current[bid]) { close(bid); return; }
+    if (!rootsFor(notesRef.current, bid).length) pendingFocus.current = bid;
+    setOpen(s => ({ ...s, [bid]: true }));
   };
 
   useImperativeHandle(ref, () => ({ toggle }));
 
-  useEffect(() => {
-    let next = threadsRef.current, changed = false;
-    for (const b of blocks) {
-      const sig = JSON.stringify(notes.filter(n => n.block === b.id).map(n => [n.id, n.status, n.text])) + listening;
-      if (sigs.current.get(b.id) === sig) continue;
-      sigs.current.set(b.id, sig);
-      const has = rootsFor(notes, b.id).length > 0;
-      const cur = next[b.id];
-      if (sideMode && has) {
-        if (!cur || !cur.visible) { next = { ...next, [b.id]: { visible: true, active: cur ? cur.active : false } }; changed = true; }
-      } else if (cur && cur.visible && sideMode && !has && !cur.active) {
-        next = { ...next, [b.id]: { ...cur, visible: false } };
-        changed = true;
-      }
-    }
-    if (changed) setThreads(next);
-  }, [notes, listening, blocks]);
-
-  useEffect(() => {
-    if (!sideMode) return;
-    let next = threadsRef.current, changed = false;
-    for (const b of blocks) {
-      if (!rootsFor(notesRef.current, b.id).length) continue;
-      const cur = next[b.id];
-      if (cur && cur.visible) continue;
-      next = { ...next, [b.id]: { visible: true, active: cur ? cur.active : false } };
-      changed = true;
-    }
-    if (changed) setThreads(next);
-  }, [sideMode]);
-
   useLayoutEffect(() => {
     for (const b of blocks) {
-      const t = threads[b.id];
-      b.el.classList.toggle("open", !!t && t.visible && (!sideMode || t.active));
+      b.el.classList.toggle("open", !!open[b.id]);
       const row = rows.current.get(b.id);
-      if (row) row.hidden = sideMode || !t || !t.visible;
+      if (row) row.hidden = !open[b.id];
     }
-    layoutSide();
     const bid = pendingFocus.current;
     if (bid) {
       pendingFocus.current = null;
@@ -137,14 +61,6 @@ export const LessonThreads = forwardRef<ThreadsApi, Props>(function LessonThread
       if (area) area.focus({ preventScroll: true });
     }
   });
-
-  useEffect(() => {
-    const onResize = () => layoutSide();
-    addEventListener("resize", onResize);
-    const ro = window.ResizeObserver && mainEl ? new ResizeObserver(onResize) : null;
-    if (ro && mainEl) ro.observe(mainEl);
-    return () => { removeEventListener("resize", onResize); if (ro) ro.disconnect(); };
-  }, [layoutSide, mainEl]);
 
   const rowFor = (b: Block) => {
     let row = rows.current.get(b.id);
@@ -163,20 +79,19 @@ export const LessonThreads = forwardRef<ThreadsApi, Props>(function LessonThread
   return (
     <>
       {blocks.map(b => {
-        const t = threads[b.id];
+        const seen = b.id in open;
         const btnHost = b.el.tagName === "TR" ? b.el.lastElementChild : b.el;
         let container: Element | null = null, after: HTMLElement | null = null;
-        if (t) {
-          if (sideMode) container = sideEl;
-          else if (b.el.tagName === "TR") container = rowFor(b);
+        if (seen) {
+          if (b.el.tagName === "TR") container = rowFor(b);
           else if (b.el.tagName === "LI") container = b.el;
           else { container = b.el.parentElement; after = b.el; }
         }
         return (
           <Fragment key={b.id}>
             {btnHost ? createPortal(<AddButton block={b} notes={notes} onToggle={() => toggle(b.id)} />, btnHost) : null}
-            {t && container ? createPortal(
-              <Thread block={b} visible={t.visible} active={t.active} after={after} onClose={() => close(b.id)} relayout={layoutSide} />,
+            {seen && container ? createPortal(
+              <Thread block={b} visible={open[b.id]} after={after} onClose={() => close(b.id)} />,
               container,
             ) : null}
           </Fragment>

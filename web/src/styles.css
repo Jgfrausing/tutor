@@ -136,15 +136,6 @@ tr:hover td > .c-add.inline, td > .c-add.inline.has-notes { opacity: 1; }
 .thread { margin: 0.6rem 0 1rem; padding: 0.7rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 0.92rem; }
 .thread[hidden] { display: none; }
 .c-block.linked { background: var(--flash); border-radius: 6px; }
-#side { display: none; }
-@media (min-width: 1260px) {
-  #side { display: block; position: absolute; top: 0; left: calc(100% + 2rem); width: 22rem; }
-  #side .thread { position: absolute; left: 0; right: 0; margin: 0; max-height: 75vh; overflow: auto; transition: top 0.15s; }
-  #side .thread:not(.active) .form { display: none; }
-  #side .thread.active { border-color: var(--accent); box-shadow: var(--shadow); z-index: 2; }
-  #side .reply-box, #side .thread-foot { margin-left: 0.6rem; }
-  #side .note.reply { margin-left: 0.6rem; }
-}
 .thread-row td { padding: 0 0.7rem; background: var(--bg); }
 .note { position: relative; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 .note.claude { border-left: 3px solid var(--accent-2); padding-left: 0.75rem; background: color-mix(in srgb, var(--accent-2) 7%, transparent); border-radius: 0 6px 6px 0; }
