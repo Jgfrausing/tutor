@@ -288,6 +288,7 @@ mark { background: color-mix(in srgb, var(--question) 30%, transparent); color: 
 .review { max-width: 34rem; margin: 1rem auto; }
 .review .flip, .review .flip-inner { min-height: 14rem; }
 .review .face { font-size: 1.05rem; padding: 1.2rem; }
+.review .empty { text-align: center; }
 .review-actions { display: flex; gap: 0.6rem; justify-content: center; margin: 1rem 0; }
 
 @media (max-width: 860px) {

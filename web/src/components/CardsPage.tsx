@@ -29,7 +29,7 @@ export function CardsPage() {
       <p className="lede">{`Cards from lessons you have completed (${total} cards so far). "Got it" moves a card to a longer interval (1, 2, 4, 8, 16, 32 days); "Again" brings it back today. Each "Got it" on a due card is worth 2 XP.`}</p>
       <div className="review">
         {!c ? (
-          <p className="empty">{total ? "Nothing due. Come back tomorrow, or complete another lesson to add its cards." : "Complete a lesson (pass its quiz) to add its cards here."}</p>
+          <p className="empty">{total ? "Nothing due. Come back tomorrow, or complete another lesson to add its cards. " : "Complete a lesson (pass its quiz) to add its cards here. "}<a href="/">Go to the tree</a></p>
         ) : (
           <>
             <p className="panel-sub">{`${queue.length} left. From `}<a href={"/t/" + c.topic}>{NODE[c.topic].title}</a>.</p>
