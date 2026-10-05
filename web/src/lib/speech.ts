@@ -7,7 +7,7 @@ interface Recognizer {
   interimResults: boolean;
   maxAlternatives: number;
   onresult: ((e: RecognitionEvent) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
@@ -89,7 +89,10 @@ function kanaToRomaji(input: string) {
 const normRomaji = (s: string) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "").replace(/ou/g, "o").replace(/([aeiou])\1/g, "$1").replace(/m(?=[bmp])/g, "n");
 const matchScore = (heard: string, target: string, romaji?: string) => Math.max(similarity(heard, target), romaji && !/[一-鿿]/.test(heard) ? similarity(normRomaji(kanaToRomaji(heard)), normRomaji(romaji)) : 0);
 
+let micProblem: string | null = null;
+
 async function startRecorder() {
+  micProblem = null;
   if (!navigator.mediaDevices || !window.MediaRecorder) return null;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -98,8 +101,19 @@ async function startRecorder() {
     const done = new Promise<Blob>(res => { rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); res(new Blob(chunks, { type: rec.mimeType })); }; });
     rec.start();
     return { stop: () => { if (rec.state !== "inactive") rec.stop(); return done; } };
-  } catch { return null; }
+  } catch (err) {
+    const name = err instanceof DOMException ? err.name : "";
+    micProblem = name === "NotAllowedError" || name === "SecurityError" ? "blocked" : name === "NotFoundError" ? "none" : "unavailable";
+    return null;
+  }
 }
+
+const PROBLEM_TEXT: Record<string, string> = {
+  blocked: "Microphone blocked. Allow microphone access for this site (the icon in the address bar), then try again.",
+  none: "No microphone found. Connect one, or check the sound input in your system settings.",
+  unavailable: "The microphone could not be opened. Close other apps that use it, then try again.",
+  network: "Speech recognition needs an internet connection in this browser.",
+};
 
 export interface ListenResult {
   cls: string;
@@ -117,6 +131,7 @@ export function listen(target: string, romaji: string | undefined, setLive: (on:
   setOut({ cls: "", note: "Listening, say it now" });
   let recorder: { stop: () => Promise<Blob> } | null = null, recognizer: Recognizer | null = null, finished = false;
   const heard: string[] = [];
+  let recProblem: string | null = null;
   const finish = async () => {
     if (finished) return;
     finished = true;
@@ -131,12 +146,13 @@ export function listen(target: string, romaji: string | undefined, setLive: (on:
       out.cls = pct >= 85 ? "good" : pct >= 60 ? "close" : "off";
       out.label = `${pct >= 85 ? "Good" : pct >= 60 ? "Close" : "Try again"}: ${pct}%`;
       out.heard = best.h;
-    } else if (Recognition) {
-      out.cls = "off";
-      out.label = "Did not catch that";
+    } else {
+      const problem = micProblem || recProblem;
+      if (problem && PROBLEM_TEXT[problem]) { out.cls = "off"; out.note = PROBLEM_TEXT[problem]; }
+      else if (Recognition) { out.cls = "off"; out.label = "Did not catch that. Speak right after the button turns red."; }
     }
     if (blob && blob.size) out.url = URL.createObjectURL(blob);
-    if (!out.label && !out.url) out.note = "This browser cannot use the microphone here. Try Chrome or Safari.";
+    if (!out.label && !out.url && !out.note) out.note = "This browser cannot use the microphone here. Try Chrome or Safari.";
     setOut(out);
   };
   activeListen = finish;
@@ -152,7 +168,10 @@ export function listen(target: string, romaji: string | undefined, setLive: (on:
       recognizer.interimResults = false;
       recognizer.maxAlternatives = 5;
       recognizer.onresult = e => { for (const r of e.results) for (const alt of r) heard.push(alt.transcript); };
-      recognizer.onerror = () => {};
+      recognizer.onerror = e => {
+        const code = e.error || "";
+        recProblem = code === "not-allowed" || code === "service-not-allowed" ? "blocked" : code === "audio-capture" ? "none" : code === "network" ? "network" : recProblem;
+      };
       recognizer.onend = () => { setTimeout(finish, 150); };
       recognizer.start();
     } catch { setTimeout(finish, 4000); }
