@@ -49,7 +49,7 @@ export function Journal({ headRef }: { headRef: RefObject<HTMLHeadingElement> })
     <section id="your-notes">
       <h2 className="section-title" data-cid="journal" ref={headRef}>Your notes</h2>
       <p className="lede">Markdown, saved on disk at <code>{file}</code>. Your question threads are also exported to <code>{`${PLATFORM.state}/notes/${TOPIC}.md`}</code>.</p>
-      <textarea id="journal" ref={area} placeholder={`Your own notes for this lesson. They save to ${file} as you type.`}
+      <textarea id="journal" ref={area} placeholder="Your own notes for this lesson, in markdown. They save as you type."
         style={{ minHeight: "12rem", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "0.88rem" }}
         value={value} onChange={e => {
           valueRef.current = e.target.value;
