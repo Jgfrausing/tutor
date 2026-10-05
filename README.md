@@ -34,6 +34,14 @@ npm run build
 
 `npm run build` type-checks with `tsc` and writes the bundle to `dist/` in the repository root. Commit `dist/` with the source change. KaTeX and highlight.js load from cdnjs through script tags in `web/index.html`, not from npm.
 
+## Tests
+
+```sh
+python3 -m unittest discover tests
+```
+
+The tests start the server on a free port against a small temporary curriculum and state folder. They cover the pages, `/files/` and path traversal, quiz XP, card intervals and first-review dates, bad input, notes and `build`. They need no network and touch nothing outside the temporary folder.
+
 ## Files
 
 | File | What it holds |
