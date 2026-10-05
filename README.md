@@ -22,6 +22,16 @@ python3 server.py --root ~/notes/market-simulation --state ~/notes/study-state/m
 | `reply <id> <text or ->` | Posts an answer as Claude and marks the thread answered |
 | `list [--open]` | Prints every thread |
 
+## Making a curriculum
+
+`skills/new-curriculum` is a Claude Code skill that builds a whole curriculum: it asks about the subject, reader and size, shows you the tree for approval, writes `curriculum.json`, `AUDIENCE.md` and `README.md`, has writer agents produce every lesson, quiz, card and terms file in parallel, and runs `build` until it is clean. It does not start a server. Link it into your skills folder once:
+
+```sh
+ln -s "$PWD/skills/new-curriculum" ~/.claude/skills/new-curriculum
+```
+
+Then ask Claude Code for "a new curriculum on <subject>".
+
 ## Files
 
 | File | What it holds |
