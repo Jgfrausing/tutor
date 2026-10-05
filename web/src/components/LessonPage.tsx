@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "../context";
 import { BOOT, NODE, NODES, PAGE, TOPIC, isSide, onServer, xpOf } from "../lib/boot";
-import { highlightCode, renderMath } from "../lib/dom";
+import { highlightCode, linkFigures, renderMath } from "../lib/dom";
 import { glossarize } from "../lib/glossary";
 import { nodeState, passed } from "../lib/progress";
 import type { Block, TopicCard } from "../types";
@@ -138,6 +138,7 @@ export function LessonPage() {
     doc.querySelectorAll("h2").forEach((h, i) => { if (!h.id) h.id = "s" + (i + 1); });
     renderMath(doc);
     highlightCode(doc);
+    linkFigures(doc);
     glossarize(doc, false);
     setSayHosts(enhanceSay(doc));
     setBlocks(list);

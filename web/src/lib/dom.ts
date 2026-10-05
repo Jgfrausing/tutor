@@ -64,3 +64,17 @@ export function choiceOrder(n: number, key: string): number[] {
   }
   return order;
 }
+
+export function linkFigures(root: HTMLElement) {
+  root.querySelectorAll<HTMLImageElement>("figure.fig img").forEach(img => {
+    if (img.closest("a")) return;
+    const a = document.createElement("a");
+    a.href = img.getAttribute("src") || "";
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.className = "fig-link";
+    a.title = "Open the figure full size";
+    img.replaceWith(a);
+    a.append(img);
+  });
+}
